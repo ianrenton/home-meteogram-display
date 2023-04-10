@@ -1,0 +1,4 @@
+kaleido>=0.2.1
+plotly>=5.14.1
+python-dotenv>=0.20.0
+suntime>=1.2.5
