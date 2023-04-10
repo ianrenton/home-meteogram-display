@@ -5,6 +5,24 @@ This is a work in progress. Currently, the generated Meteogram looks like this:
 
 ![Example Meteogram](example.png)
 
+You can read about the background to this project in [this blog post](https://ianrenton.com/blog/making-meteograms-in-python/).
+
+## Features
+
+* The red line shows temperature in Celsius between defined limits. Low temperatures in the forecast will cause frost and ice indicators to appear on the chart.
+* The green line shows wind speed in miles per hour, between zero and a defined limit.
+* The blue line shows precipitation probability from 0 to 100%.
+* The vertical yellow bands show hours of daylight, named for their day of the week, and the solid yellow vertical line shows the current time when the meteogram was generated.
+
+## Future Plans
+
+* Include weather symbols
+* Improved customisation
+* Improvements to scaling for ultra-wide-screen displays
+* Frost warnings
+* Storm warnings
+* Outdoor laundry drying indicator
+
 ## Running your own copy
 
 If you would like to use this script for yourself, follow these steps:
