@@ -1,9 +1,7 @@
 # Python Met Office Meteogram Script
 # by Ian Renton, April 2023
 # https://github.com/ianrenton/python-metoffice-meteogram
-#
-# Before running, copy the '.env.example' file to '.env' and fill in your information. You will need a Met Office
-# Datapoint API key - see information in '.env.example'.
+# See README for instructions.
 
 import datetime
 import json
@@ -37,6 +35,13 @@ OUTPUT_FILE_NAME = "output.png"
 
 # Load .env
 print("Loading configuration...")
+
+cacheFile = pathlib.Path(".env")
+if not cacheFile.exists():
+    print("The .env file does not exist. You will need to create this by copying .env.example and filling "
+          "in the required parameters. See the README for more information.")
+    sys.exit(1)
+
 dotenv.load_dotenv()
 API_KEY = os.getenv("API_KEY")
 LOCATION_CODE = os.getenv("LOCATION_CODE")
