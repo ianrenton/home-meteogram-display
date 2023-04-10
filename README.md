@@ -13,12 +13,10 @@ You can read about the background to this project in [this blog post](https://ia
 * The green line shows wind speed in miles per hour, between zero and a defined limit.
 * The blue line shows precipitation probability from 0 to 100%.
 * The vertical yellow bands show hours of daylight, named for their day of the week, and the solid yellow vertical line shows the current time when the meteogram was generated.
+* Weather symbols across the bottom of the meteogram are based on the forecasted conditions.
 
 ## Future Plans
 
-* Include weather symbols
-* Improved customisation
-* Improvements to scaling for ultra-wide-screen displays
 * Frost warnings
 * Storm warnings
 * Outdoor laundry drying indicator
@@ -37,3 +35,9 @@ If you would like to use this script for yourself, follow these steps:
 6. Make any other adjustments to parameters in `.env` based on the climate of your location, then save it.
 7. Run `python meteogram.py`
 8. View the meteogram, which will be saved as `output.png`.
+
+## Thanks / Licence Information
+
+My own original code created for this project is licenced under "The Unlicence" as described in the `LICENCE` file.
+
+The repository also contains weather icons inside the `icons` folder which are from the [Adwaita](https://github.com/GNOME/adwaita-icon-theme) icon set and subject to its licence terms (LGPL/CC BY-SA 3), used with many thanks.

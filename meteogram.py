@@ -9,20 +9,22 @@ import os
 import pathlib
 import urllib.request
 import sys
-
 import dotenv
+import PIL.Image
 import plotly.graph_objects as go
 import plotly.subplots
 import suntime
 
-# Mapping of Met Office API weather codes to emoji used for display
-# ref "Clear night","Sunny day","Partly cloudy (night)","Partly cloudy (day)","Not used","Mist","Fog","Cloudy",
-# "Overcast","Light rain shower (night)","Light rain shower (day)","Drizzle","Light rain","Heavy rain shower (
-# night)","Heavy rain shower (day)","Heavy rain","Sleet shower (night)","Sleet shower (day)","Sleet","Hail shower (
-# night)","Hail shower (day)","Hail","Light snow shower (night)","Light snow shower (day)","Light snow","Heavy snow
-# shower (night)","Heavy snow shower (day)","Heavy snow","Thunder shower (night)","Thunder shower (day)","Thunder"
-WEATHER_SYMBOLS = ["🌙", "🌞", "🌥", "🌤", "", "🌫", "🌫", "☁", "☁", "🌦", "🌦", "🌦", "🌦", "🌧", "🌧", "🌧", "🌨", "🌨", "🌨", "⛈",
-                   "⛈", "⛈", "🌨", "🌨", "🌨", "🌨", "🌨", "🌨", "⛈", "⛈", "🌩"]
+# Mapping of Met Office weather code (index 0-30) to icon file we will use to display it.
+WEATHER_ICON_LOOKUP = ["weather-clear-night.png", "weather-clear.png", "weather-few-clouds-night.png",
+                       "weather-few-clouds.png", "", "weather-fog.png", "weather-fog.png", "weather-overcast.png",
+                       "weather-overcast.png", "weather-showers-scattered.png", "weather-showers-scattered.png",
+                       "weather-showers-scattered.png", "weather-showers-scattered.png", "weather-showers.png",
+                       "weather-showers.png", "weather-showers.png", "weather-showers-scattered.png",
+                       "weather-showers-scattered.png", "weather-showers.png", "weather-storm.png", "weather-storm.png",
+                       "weather-storm.png", "weather-snow.png", "weather-snow.png", "weather-snow.png",
+                       "weather-snow.png", "weather-snow.png", "weather-snow.png", "weather-storm.png",
+                       "weather-storm.png", "weather-storm.png"]
 
 # Load .env
 print("Loading configuration...")
@@ -52,6 +54,7 @@ MIN_TEMP = float(os.getenv("MIN_TEMP"))
 MAX_WIND_SPEED = float(os.getenv("MAX_WIND_SPEED"))
 CACHE_FILE_NAME = os.getenv("CACHE_FILE_NAME")
 OUTPUT_FILE_NAME = os.getenv("OUTPUT_FILE_NAME")
+WEATHER_ICON_FOLDER = os.getenv("WEATHER_ICON_FOLDER")
 TEMP_COLOR = os.getenv("TEMP_COLOR")
 PRECIP_COLOR = os.getenv("PRECIP_COLOR")
 WIND_COLOR = os.getenv("WIND_COLOR")
@@ -105,7 +108,6 @@ wind_gusts = []
 wind_dirs = []
 humidities = []
 weather_codes = []
-weather_symbols = []
 
 # Parse data into useful forms for plotting.
 # See https://www.metoffice.gov.uk/binaries/content/assets/metofficegovuk/pdf/data/datapoint_api_reference.pdf
@@ -142,7 +144,6 @@ for day in day_list:
         humidities.append(int(humidity))
         weather_code = rep["W"]
         weather_codes.append(int(weather_code))
-        weather_symbols.append(WEATHER_SYMBOLS[int(weather_code)])
 
 # Create plots
 print("Plotting data...")
@@ -162,19 +163,33 @@ fig.add_traces([temp_trace, precip_trace, wind_trace])
 fig["layout"].update(height=PLOT_HEIGHT, width=PLOT_WIDTH,
                      paper_bgcolor=BACKGROUND_COLOR, plot_bgcolor=BACKGROUND_COLOR,
                      showlegend=False, margin=dict(l=10, r=10, t=10, b=10),
-                     xaxis=dict(domain=[0, 0.96], showticklabels=WEATHER_ON_X_AXIS, tickangle=0,
-                                tickfont=dict(color=DATE_AXIS_COLOR, size=WEATHER_FONT_SIZE),
-                                titlefont=dict(color=DATE_AXIS_COLOR),
-                                showgrid=False, zeroline=False,
-                                tickmode='array', tickvals=date_times, ticktext=weather_symbols),
-                     yaxis1=dict(side="right", anchor="free", position=0.97, tickfont=dict(color=TEMP_COLOR, size=16),
+                     xaxis=dict(domain=[0, 0.96], visible=False, showgrid=False, zeroline=False),
+                     yaxis1=dict(domain=[0.08, 1.0], side="right", anchor="free", position=0.97,
+                                 tickfont=dict(color=TEMP_COLOR, size=16),
                                  showgrid=False, zeroline=False, range=[MIN_TEMP, MAX_TEMP]),
-                     yaxis2=dict(side="right", anchor="free", position=0.98, tickfont=dict(color=PRECIP_COLOR, size=16),
+                     yaxis2=dict(domain=[0.08, 1.0], side="right", anchor="free", position=0.98,
+                                 tickfont=dict(color=PRECIP_COLOR, size=16),
                                  showgrid=False, zeroline=False, showticklabels=False, overlaying="y",
                                  range=[0.0, 100.0]),
-                     yaxis3=dict(side="right", anchor="free", position=1.00, tickfont=dict(color=WIND_COLOR, size=16),
+                     yaxis3=dict(domain=[0.08, 1.0], side="right", anchor="free", position=1.00,
+                                 tickfont=dict(color=WIND_COLOR, size=16),
                                  showgrid=False, zeroline=False, overlaying="y", range=[0.0, MAX_WIND_SPEED])
                      )
+
+# If we're displaying weather symbols, add them to the plot
+if WEATHER_ON_X_AXIS:
+    for i in range(0, len(date_times)):
+        image = PIL.Image.open(WEATHER_ICON_FOLDER + "/" + WEATHER_ICON_LOOKUP[weather_codes[i]])
+        fig.add_layout_image(
+            source=image,
+            x=date_times[i],
+            y=0.07,
+            xref="x",
+            yref="paper",
+            xanchor="center",
+            sizex=8000000,
+            sizey=1
+        )
 
 # If we have frosty temperatures, add horizontal lines at the appropriate temperatures
 if frosty_temp:
