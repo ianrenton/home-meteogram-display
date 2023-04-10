@@ -15,23 +15,14 @@ import plotly.graph_objects as go
 import plotly.subplots
 import suntime
 
-# Formatting options. You may wish to customise these to suit your needs.
-TEMP_COLOR = "firebrick"
-PRECIP_COLOR = "dodgerblue"
-WIND_COLOR = "forestgreen"
-DAYTIME_COLOR = "yellow"
-DAYTIME_OPACITY = 0.1
-NOW_LINE_COLOR = "yellow"
-DATE_AXIS_COLOR = "white"
-FROST_REGION_COLOR = "powderblue"
-ICE_REGION_COLOR = "white"
-FROST_LEVEL_OPACITY = 0.5
-LABEL_DATE_AXIS = False
-BACKGROUND_COLOR = "black"
-
-# Miscellaneous defines
-CACHE_FILE_NAME = "cache.json"
-OUTPUT_FILE_NAME = "output.png"
+# Mapping of Met Office API weather codes to emoji used for display
+# ref "Clear night","Sunny day","Partly cloudy (night)","Partly cloudy (day)","Not used","Mist","Fog","Cloudy",
+# "Overcast","Light rain shower (night)","Light rain shower (day)","Drizzle","Light rain","Heavy rain shower (
+# night)","Heavy rain shower (day)","Heavy rain","Sleet shower (night)","Sleet shower (day)","Sleet","Hail shower (
+# night)","Hail shower (day)","Hail","Light snow shower (night)","Light snow shower (day)","Light snow","Heavy snow
+# shower (night)","Heavy snow shower (day)","Heavy snow","Thunder shower (night)","Thunder shower (day)","Thunder"
+WEATHER_SYMBOLS = ["🌙", "🌞", "🌥", "🌤", "", "🌫", "🌫", "☁", "☁", "🌦", "🌦", "🌦", "🌦", "🌧", "🌧", "🌧", "🌨", "🌨", "🌨", "⛈",
+                   "⛈", "⛈", "🌨", "🌨", "🌨", "🌨", "🌨", "🌨", "⛈", "⛈", "🌩"]
 
 # Load .env
 print("Loading configuration...")
@@ -43,17 +34,35 @@ if not cacheFile.exists():
     sys.exit(1)
 
 dotenv.load_dotenv()
+
+if not os.getenv("API_KEY"):
+    print("Your Met Office Datapoint API key is not set. Copy the '.env.example' file to '.env' and insert your key. "
+          "Then try running this software again.")
+    sys.exit(1)
+
 API_KEY = os.getenv("API_KEY")
 LOCATION_CODE = os.getenv("LOCATION_CODE")
+PLOT_WIDTH = int(os.getenv("PLOT_WIDTH"))
+PLOT_HEIGHT = int(os.getenv("PLOT_HEIGHT"))
+WEATHER_ON_X_AXIS = bool(os.getenv("WEATHER_ON_X_AXIS"))
+WEATHER_FONT_SIZE = int(os.getenv("WEATHER_FONT_SIZE"))
 MAX_TEMP = float(os.getenv("MAX_TEMP"))
 FROST_WARNING_TEMP = float(os.getenv("FROST_WARNING_TEMP"))
 MIN_TEMP = float(os.getenv("MIN_TEMP"))
 MAX_WIND_SPEED = float(os.getenv("MAX_WIND_SPEED"))
-
-if not API_KEY:
-    print("Your Met Office Datapoint API key is not set. Copy the '.env.example' file to '.env' and insert your key. "
-          "Then try running this software again.")
-    sys.exit(1)
+CACHE_FILE_NAME = os.getenv("CACHE_FILE_NAME")
+OUTPUT_FILE_NAME = os.getenv("OUTPUT_FILE_NAME")
+TEMP_COLOR = os.getenv("TEMP_COLOR")
+PRECIP_COLOR = os.getenv("PRECIP_COLOR")
+WIND_COLOR = os.getenv("WIND_COLOR")
+DAYTIME_COLOR = os.getenv("DAYTIME_COLOR")
+DAYTIME_OPACITY = float(os.getenv("DAYTIME_OPACITY"))
+NOW_LINE_COLOR = os.getenv("NOW_LINE_COLOR")
+DATE_AXIS_COLOR = os.getenv("DATE_AXIS_COLOR")
+FROST_REGION_COLOR = os.getenv("FROST_REGION_COLOR")
+ICE_REGION_COLOR = os.getenv("ICE_REGION_COLOR")
+FROST_LEVEL_OPACITY = float(os.getenv("FROST_LEVEL_OPACITY"))
+BACKGROUND_COLOR = os.getenv("BACKGROUND_COLOR")
 
 # Build API URL
 api_url = "http://datapoint.metoffice.gov.uk/public/data/val/wxfcs/all/json/" + LOCATION_CODE \
@@ -96,6 +105,7 @@ wind_gusts = []
 wind_dirs = []
 humidities = []
 weather_codes = []
+weather_symbols = []
 
 # Parse data into useful forms for plotting.
 # See https://www.metoffice.gov.uk/binaries/content/assets/metofficegovuk/pdf/data/datapoint_api_reference.pdf
@@ -132,6 +142,7 @@ for day in day_list:
         humidities.append(int(humidity))
         weather_code = rep["W"]
         weather_codes.append(int(weather_code))
+        weather_symbols.append(WEATHER_SYMBOLS[int(weather_code)])
 
 # Create plots
 print("Plotting data...")
@@ -148,10 +159,14 @@ fig = plotly.subplots.make_subplots()
 fig.add_traces([temp_trace, precip_trace, wind_trace])
 
 # Configure layout
-fig["layout"].update(height=400, width=1000, paper_bgcolor=BACKGROUND_COLOR, plot_bgcolor=BACKGROUND_COLOR,
+fig["layout"].update(height=PLOT_HEIGHT, width=PLOT_WIDTH,
+                     paper_bgcolor=BACKGROUND_COLOR, plot_bgcolor=BACKGROUND_COLOR,
                      showlegend=False, margin=dict(l=10, r=10, t=10, b=10),
-                     xaxis=dict(domain=[0, 0.96], showticklabels=LABEL_DATE_AXIS, tickfont=dict(color=DATE_AXIS_COLOR),
-                                titlefont=dict(color=DATE_AXIS_COLOR), showgrid=False, zeroline=False),
+                     xaxis=dict(domain=[0, 0.96], showticklabels=WEATHER_ON_X_AXIS, tickangle=0,
+                                tickfont=dict(color=DATE_AXIS_COLOR, size=WEATHER_FONT_SIZE),
+                                titlefont=dict(color=DATE_AXIS_COLOR),
+                                showgrid=False, zeroline=False,
+                                tickmode='array', tickvals=date_times, ticktext=weather_symbols),
                      yaxis1=dict(side="right", anchor="free", position=0.97, tickfont=dict(color=TEMP_COLOR, size=16),
                                  showgrid=False, zeroline=False, range=[MIN_TEMP, MAX_TEMP]),
                      yaxis2=dict(side="right", anchor="free", position=0.98, tickfont=dict(color=PRECIP_COLOR, size=16),
