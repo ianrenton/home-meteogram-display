@@ -7,10 +7,11 @@ import datetime
 import json
 import os
 import pathlib
-import urllib.request
 import sys
-import dotenv
+import urllib.request
+
 import PIL.Image
+import dotenv
 import plotly.graph_objects as go
 import plotly.subplots
 import suntime
@@ -147,11 +148,11 @@ for day in day_list:
 
 # Create plots
 print("Plotting data...")
-temp_trace = go.Scatter(x=date_times, y=temperatures, name="Temperature", yaxis="y1",
+temp_trace = go.Scatter(x=date_times, y=temperatures, name="Temperature", yaxis="y1", line_shape='spline',
                         marker=dict(color=TEMP_COLOR), line=dict(color=TEMP_COLOR, width=4))
 precip_trace = go.Scatter(x=date_times, y=precip_probs, name="Precipitation Probability", yaxis="y2",
-                          marker=dict(color=PRECIP_COLOR), line=dict(color=PRECIP_COLOR, width=4))
-wind_trace = go.Scatter(x=date_times, y=wind_speeds, name="Wind Speed", yaxis="y3",
+                          line_shape='spline', marker=dict(color=PRECIP_COLOR), line=dict(color=PRECIP_COLOR, width=4))
+wind_trace = go.Scatter(x=date_times, y=wind_speeds, name="Wind Speed", yaxis="y3", line_shape='spline',
                         marker=dict(color=WIND_COLOR), line=dict(color=WIND_COLOR, width=4))
 traces = [temp_trace, precip_trace, wind_trace]
 
