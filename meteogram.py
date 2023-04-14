@@ -90,6 +90,7 @@ PLOT_HEIGHT = int(os.getenv("PLOT_HEIGHT"))
 DISPLAY_TEMP = os.getenv("DISPLAY_TEMP") == "True"
 USE_FEELS_LIKE_TEMP = os.getenv("USE_FEELS_LIKE_TEMP") == "True"
 DISPLAY_WIND = os.getenv("DISPLAY_WIND") == "True"
+DISPLAY_GUSTS = os.getenv("DISPLAY_GUSTS") == "True"
 DISPLAY_PRECIP_PROB = os.getenv("DISPLAY_PRECIP_PROB") == "True"
 DISPLAY_HUMIDITY = os.getenv("DISPLAY_HUMIDITY") == "True"
 WEATHER_ICONS_ON_X_AXIS = os.getenv("WEATHER_ICONS_ON_X_AXIS") == "True"
@@ -99,7 +100,7 @@ MAX_TEMP = float(os.getenv("MAX_TEMP"))
 FROST_WARNING_TEMP = float(os.getenv("FROST_WARNING_TEMP"))
 MIN_TEMP = float(os.getenv("MIN_TEMP"))
 MAX_WIND_SPEED = float(os.getenv("MAX_WIND_SPEED"))
-STORM_WARNING_WIND_SPEED = float(os.getenv("STORM_WARNING_WIND_SPEED"))
+STORM_WARNING_GUST_SPEED = float(os.getenv("STORM_WARNING_GUST_SPEED"))
 STORM_WARNING_PRECIP_PROB = float(os.getenv("STORM_WARNING_PRECIP_PROB"))
 LAUNDRY_DAY_ABOVE_HOURS_DAYLIGHT = float(os.getenv("LAUNDRY_DAY_ABOVE_HOURS_DAYLIGHT"))
 LAUNDRY_DAY_ABOVE_AVERAGE_TEMP = float(os.getenv("LAUNDRY_DAY_ABOVE_AVERAGE_TEMP"))
@@ -111,6 +112,8 @@ WEATHER_ICON_FOLDER = os.getenv("WEATHER_ICON_FOLDER")
 TEMP_COLOR = os.getenv("TEMP_COLOR")
 PRECIP_COLOR = os.getenv("PRECIP_COLOR")
 WIND_COLOR = os.getenv("WIND_COLOR")
+GUST_COLOR = os.getenv("GUST_COLOR")
+GUST_LINE_STYLE = os.getenv("GUST_LINE_STYLE")
 HUMIDITY_COLOR = os.getenv("HUMIDITY_COLOR")
 DAYTIME_COLOR = os.getenv("DAYTIME_COLOR")
 DAYTIME_OPACITY = float(os.getenv("DAYTIME_OPACITY"))
@@ -219,6 +222,9 @@ precip_trace = go.Scatter(x=date_times, y=precip_probs, name="Precipitation Prob
 wind_trace = go.Scatter(x=date_times, y=wind_speeds, name="Wind Speed", yaxis="y3", line_shape='spline',
                         marker=dict(color=WIND_COLOR), line=dict(color=WIND_COLOR, width=4))
 # noinspection PyTypeChecker
+gust_trace = go.Scatter(x=date_times, y=wind_gusts, name="Gust Speed", yaxis="y3", line_shape='spline',
+                        marker=dict(color=WIND_COLOR), line=dict(color=GUST_COLOR, width=4, dash=GUST_LINE_STYLE))
+# noinspection PyTypeChecker
 humidity_trace = go.Scatter(x=date_times, y=humidities, name="Humidity", yaxis="y4", line_shape='spline',
                             marker=dict(color=HUMIDITY_COLOR), line=dict(color=HUMIDITY_COLOR, width=4))
 traces = []
@@ -228,6 +234,8 @@ if DISPLAY_PRECIP_PROB:
     traces.append(precip_trace)
 if DISPLAY_WIND:
     traces.append(wind_trace)
+if DISPLAY_GUSTS:
+    traces.append(gust_trace)
 if DISPLAY_HUMIDITY:
     traces.append(humidity_trace)
 
@@ -276,7 +284,7 @@ if CONDITION_BARS_ON_X_AXIS:
     # Extract regions of the forecast that correspond to frosty or stormy conditions
     frosty_indices = [i for i in range(len(temperatures)) if temperatures[i] <= FROST_WARNING_TEMP]
     wet_indices = [i for i in range(len(precip_probs)) if precip_probs[i] >= STORM_WARNING_PRECIP_PROB]
-    windy_indices = [i for i in range(len(wind_speeds)) if wind_speeds[i] >= STORM_WARNING_WIND_SPEED]
+    windy_indices = [i for i in range(len(wind_gusts)) if wind_gusts[i] >= STORM_WARNING_GUST_SPEED]
     # Stormy = wet + windy
     stormy_indices = [i for i in wet_indices if i in windy_indices]
     # Storminess takes precedence so remove any frosty indices that are also stormy
