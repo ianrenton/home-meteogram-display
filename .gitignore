@@ -1,3 +1,4 @@
+/venv/
 /.env
 /cache.json
 /output.png
