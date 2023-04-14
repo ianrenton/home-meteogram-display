@@ -3,7 +3,7 @@ A python script to fetch weather forecast data from the UK Met Office Datapoint 
 
 This is a work in progress. Currently, the generated Meteogram looks like this:
 
-![Example Meteogram](example.png)
+![Meteogram animation](animation.gif)
 
 You can read about the background to this project in [this blog post](https://ianrenton.com/blog/making-meteograms-in-python/).
 
