@@ -3,3 +3,4 @@ plotly~=5.14.1
 python-dotenv~=1.0.0
 suntime~=1.2.5
 Pillow~=9.5.0
+pytz~=2023.3

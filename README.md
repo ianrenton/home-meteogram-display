@@ -21,9 +21,7 @@ You can read about the background to this project in [this blog post](https://ia
 
 ## Future Plans
 
-* Frost warnings
-* Storm warnings
-* Outdoor laundry drying indicator
+* Gust display
 
 ## Running your own copy
 
