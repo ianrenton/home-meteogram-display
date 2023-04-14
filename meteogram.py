@@ -163,8 +163,8 @@ fig.add_traces([temp_trace, precip_trace, wind_trace])
 fig["layout"].update(height=PLOT_HEIGHT, width=PLOT_WIDTH,
                      paper_bgcolor=BACKGROUND_COLOR, plot_bgcolor=BACKGROUND_COLOR,
                      showlegend=False, margin=dict(l=10, r=10, t=10, b=10),
-                     xaxis=dict(domain=[0, 0.96], visible=False, showgrid=False, zeroline=False),
-                     yaxis1=dict(domain=[0.08, 1.0], side="right", anchor="free", position=0.97,
+                     xaxis=dict(domain=[0, 0.97], visible=False, showgrid=False, zeroline=False),
+                     yaxis1=dict(domain=[0.08, 1.0], side="right", anchor="free", position=0.98,
                                  tickfont=dict(color=TEMP_COLOR, size=16),
                                  showgrid=False, zeroline=False, range=[MIN_TEMP, MAX_TEMP]),
                      yaxis2=dict(domain=[0.08, 1.0], side="right", anchor="free", position=0.98,
@@ -193,8 +193,10 @@ if WEATHER_ON_X_AXIS:
 
 # If we have frosty temperatures, add horizontal lines at the appropriate temperatures
 if frosty_temp:
-    fig.add_hrect(y0=0, y1=FROST_WARNING_TEMP, fillcolor=FROST_REGION_COLOR, opacity=FROST_LEVEL_OPACITY, layer="below")
-    fig.add_hrect(y0=MIN_TEMP, y1=0, fillcolor=ICE_REGION_COLOR, opacity=FROST_LEVEL_OPACITY, layer="below")
+    fig.add_hrect(y0=0, y1=FROST_WARNING_TEMP, fillcolor=FROST_REGION_COLOR, line_color=FROST_REGION_COLOR,
+                  opacity=FROST_LEVEL_OPACITY, layer="below")
+    fig.add_hrect(y0=MIN_TEMP, y1=0, fillcolor=ICE_REGION_COLOR, line_color=ICE_REGION_COLOR,
+                  opacity=FROST_LEVEL_OPACITY, layer="below")
 
 # Annotate figure with daytime blocks
 sun = suntime.Sun(latitude, longitude)
