@@ -47,7 +47,12 @@ API_KEY = os.getenv("API_KEY")
 LOCATION_CODE = os.getenv("LOCATION_CODE")
 PLOT_WIDTH = int(os.getenv("PLOT_WIDTH"))
 PLOT_HEIGHT = int(os.getenv("PLOT_HEIGHT"))
-WEATHER_ON_X_AXIS = bool(os.getenv("WEATHER_ON_X_AXIS"))
+DISPLAY_TEMP = os.getenv("DISPLAY_TEMP") == "True"
+USE_FEELS_LIKE_TEMP = os.getenv("USE_FEELS_LIKE_TEMP") == "True"
+DISPLAY_WIND = os.getenv("DISPLAY_WIND") == "True"
+DISPLAY_PRECIP_PROB = os.getenv("DISPLAY_PRECIP_PROB") == "True"
+DISPLAY_HUMIDITY = os.getenv("DISPLAY_HUMIDITY") == "True"
+WEATHER_ON_X_AXIS = os.getenv("WEATHER_ON_X_AXIS") == "True"
 WEATHER_FONT_SIZE = int(os.getenv("WEATHER_FONT_SIZE"))
 MAX_TEMP = float(os.getenv("MAX_TEMP"))
 FROST_WARNING_TEMP = float(os.getenv("FROST_WARNING_TEMP"))
@@ -59,13 +64,15 @@ WEATHER_ICON_FOLDER = os.getenv("WEATHER_ICON_FOLDER")
 TEMP_COLOR = os.getenv("TEMP_COLOR")
 PRECIP_COLOR = os.getenv("PRECIP_COLOR")
 WIND_COLOR = os.getenv("WIND_COLOR")
+HUMIDITY_COLOR = os.getenv("HUMIDITY_COLOR")
 DAYTIME_COLOR = os.getenv("DAYTIME_COLOR")
 DAYTIME_OPACITY = float(os.getenv("DAYTIME_OPACITY"))
 NOW_LINE_COLOR = os.getenv("NOW_LINE_COLOR")
 DATE_AXIS_COLOR = os.getenv("DATE_AXIS_COLOR")
-FROST_REGION_COLOR = os.getenv("FROST_REGION_COLOR")
-ICE_REGION_COLOR = os.getenv("ICE_REGION_COLOR")
-FROST_LEVEL_OPACITY = float(os.getenv("FROST_LEVEL_OPACITY"))
+FROST_LINE_COLOR = os.getenv("FROST_LINE_COLOR")
+FROST_LINE_STYLE = os.getenv("FROST_LINE_STYLE")
+ICE_LINE_COLOR = os.getenv("ICE_LINE_COLOR")
+FROST_LINE_OPACITY = float(os.getenv("FROST_LINE_OPACITY"))
 BACKGROUND_COLOR = os.getenv("BACKGROUND_COLOR")
 
 # Build API URL
@@ -148,17 +155,32 @@ for day in day_list:
 
 # Create plots
 print("Plotting data...")
-temp_trace = go.Scatter(x=date_times, y=temperatures, name="Temperature", yaxis="y1", line_shape='spline',
+# noinspection PyTypeChecker
+temp_trace = go.Scatter(x=date_times, y=(feels_likes if USE_FEELS_LIKE_TEMP else temperatures),
+                        name="Temperature", yaxis="y1", line_shape='spline',
                         marker=dict(color=TEMP_COLOR), line=dict(color=TEMP_COLOR, width=4))
+# noinspection PyTypeChecker
 precip_trace = go.Scatter(x=date_times, y=precip_probs, name="Precipitation Probability", yaxis="y2",
                           line_shape='spline', marker=dict(color=PRECIP_COLOR), line=dict(color=PRECIP_COLOR, width=4))
+# noinspection PyTypeChecker
 wind_trace = go.Scatter(x=date_times, y=wind_speeds, name="Wind Speed", yaxis="y3", line_shape='spline',
                         marker=dict(color=WIND_COLOR), line=dict(color=WIND_COLOR, width=4))
-traces = [temp_trace, precip_trace, wind_trace]
+# noinspection PyTypeChecker
+humidity_trace = go.Scatter(x=date_times, y=humidities, name="Humidity", yaxis="y4", line_shape='spline',
+                            marker=dict(color=HUMIDITY_COLOR), line=dict(color=HUMIDITY_COLOR, width=4))
+traces = []
+if DISPLAY_TEMP:
+    traces.append(temp_trace)
+if DISPLAY_PRECIP_PROB:
+    traces.append(precip_trace)
+if DISPLAY_WIND:
+    traces.append(wind_trace)
+if DISPLAY_HUMIDITY:
+    traces.append(humidity_trace)
 
 # Assemble figure
 fig = plotly.subplots.make_subplots()
-fig.add_traces([temp_trace, precip_trace, wind_trace])
+fig.add_traces(traces)
 
 # Configure layout
 fig["layout"].update(height=PLOT_HEIGHT, width=PLOT_WIDTH,
@@ -174,8 +196,12 @@ fig["layout"].update(height=PLOT_HEIGHT, width=PLOT_WIDTH,
                                  range=[0.0, 100.0]),
                      yaxis3=dict(domain=[0.08, 1.0], side="right", anchor="free", position=1.00,
                                  tickfont=dict(color=WIND_COLOR, size=16),
-                                 showgrid=False, zeroline=False, overlaying="y", range=[0.0, MAX_WIND_SPEED])
-                     )
+                                 showgrid=False, zeroline=False, overlaying="y", range=[0.0, MAX_WIND_SPEED]),
+                     yaxis4=dict(domain=[0.08, 1.0], side="right", anchor="free", position=1.00,
+                                 tickfont=dict(color=HUMIDITY_COLOR, size=16),
+                                 showgrid=False, zeroline=False, showticklabels=False, overlaying="y",
+                                 range=[0.0, 100.0])
+)
 
 # If we're displaying weather symbols, add them to the plot
 if WEATHER_ON_X_AXIS:
@@ -194,10 +220,10 @@ if WEATHER_ON_X_AXIS:
 
 # If we have frosty temperatures, add horizontal lines at the appropriate temperatures
 if frosty_temp:
-    fig.add_hrect(y0=0, y1=FROST_WARNING_TEMP, fillcolor=FROST_REGION_COLOR, line_color=FROST_REGION_COLOR,
-                  opacity=FROST_LEVEL_OPACITY, layer="below")
-    fig.add_hrect(y0=MIN_TEMP, y1=0, fillcolor=ICE_REGION_COLOR, line_color=ICE_REGION_COLOR,
-                  opacity=FROST_LEVEL_OPACITY, layer="below")
+    fig.add_hline(y=FROST_WARNING_TEMP, line_color=FROST_LINE_COLOR, opacity=FROST_LINE_OPACITY, line_width=1,
+                  line_dash=FROST_LINE_STYLE, layer="below")
+    fig.add_hline(y=0, line_color=ICE_LINE_COLOR, opacity=FROST_LINE_OPACITY, line_width=2,
+                  line_dash=FROST_LINE_STYLE, layer="below")
 
 # Annotate figure with daytime blocks
 sun = suntime.Sun(latitude, longitude)
