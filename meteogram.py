@@ -102,6 +102,7 @@ MIN_TEMP = float(os.getenv("MIN_TEMP"))
 MAX_WIND_SPEED = float(os.getenv("MAX_WIND_SPEED"))
 STORM_WARNING_GUST_SPEED = float(os.getenv("STORM_WARNING_GUST_SPEED"))
 STORM_WARNING_PRECIP_PROB = float(os.getenv("STORM_WARNING_PRECIP_PROB"))
+LAUNDRY_DAY_HANG_OUT_TIME = float(os.getenv("LAUNDRY_DAY_HANG_OUT_TIME"))
 LAUNDRY_DAY_ABOVE_HOURS_DAYLIGHT = float(os.getenv("LAUNDRY_DAY_ABOVE_HOURS_DAYLIGHT"))
 LAUNDRY_DAY_ABOVE_AVERAGE_TEMP = float(os.getenv("LAUNDRY_DAY_ABOVE_AVERAGE_TEMP"))
 LAUNDRY_DAY_BELOW_AVERAGE_HUMIDITY = float(os.getenv("LAUNDRY_DAY_BELOW_AVERAGE_HUMIDITY"))
@@ -180,12 +181,12 @@ longitude = float(data["SiteRep"]["DV"]["Location"]["lon"])
 day_list = data["SiteRep"]["DV"]["Location"]["Period"]
 frosty_temp = False
 for day in day_list:
-    date = datetime.strptime(day["value"], "%Y-%m-%dZ")
+    date = pytz.utc.localize(datetime.strptime(day["value"], "%Y-%m-%dZ"))
     dates.append(date)
     rep_list = day["Rep"]
     for rep in rep_list:
         time_mins = rep["$"]
-        dateTime = pytz.utc.localize(date + timedelta(minutes=int(time_mins)))
+        dateTime = date + timedelta(minutes=int(time_mins))
         date_times.append(dateTime)
         temp = rep["T"]
         temperatures.append(int(temp))
@@ -310,12 +311,15 @@ if CONDITION_BARS_ON_X_AXIS:
 
     # Calculate good laundry days
     for day in dates:
-        daytime_start = sun.get_sunrise_time(day.date())
-        daytime_end = sun.get_sunset_time(day.date())
+        # Start time for laundry is sunrise or our "hanging out" time, whichever is later.
+        # End time is sunset.
+        laundry_start_time = max(sun.get_sunrise_time(day.date()), day + timedelta(hours=LAUNDRY_DAY_HANG_OUT_TIME))
+        laundry_end_time = sun.get_sunset_time(day.date())
 
-        if daytime_end - daytime_start >= timedelta(hours=LAUNDRY_DAY_ABOVE_HOURS_DAYLIGHT):
-            # Enough hours daylight, extract indices during the day
-            daytime_indices = [i for i in range(len(date_times)) if daytime_start <= date_times[i] <= daytime_end]
+        if laundry_end_time - laundry_start_time >= timedelta(hours=LAUNDRY_DAY_ABOVE_HOURS_DAYLIGHT):
+            # Enough hours daylight, extract indices during the drying period
+            daytime_indices = [i for i in range(len(date_times)) if
+                               laundry_start_time <= date_times[i] <= laundry_end_time]
             mean_temp = statistics.mean([temperatures[i] for i in daytime_indices])
             mean_humidity = statistics.mean([humidities[i] for i in daytime_indices])
             max_precip_prob = max([precip_probs[i] for i in daytime_indices])
@@ -324,7 +328,8 @@ if CONDITION_BARS_ON_X_AXIS:
             if mean_temp >= LAUNDRY_DAY_ABOVE_AVERAGE_TEMP and mean_humidity <= LAUNDRY_DAY_BELOW_AVERAGE_HUMIDITY \
                     and max_precip_prob <= LAUNDRY_DAY_BELOW_PRECIP_PROB:
                 # noinspection PyTypeChecker
-                fig.add_shape(type="rect", x0=daytime_start.timestamp() * 1000, x1=daytime_end.timestamp() * 1000,
+                fig.add_shape(type="rect", x0=sun.get_sunrise_time(day.date()).timestamp() * 1000,
+                              x1=sun.get_sunset_time(day.date()).timestamp() * 1000,
                               y0=-0.03, y1=0.07, xref="x", yref="paper",
                               label=dict(text="LAUNDRY DAY", font=dict(color=LAUNDRY_DAY_COLOR,
                                                                        size=CONDITION_BARS_FONT_SIZE)),

@@ -3,7 +3,7 @@ A python script to fetch weather forecast data from the UK Met Office Datapoint 
 
 It is designed as a passive weather display for an ultra-widescreen monitor, but the generated image is also suitable for inclusion in web-based dashboards and other types of informational display.
 
-![Meteogram animation](docs/animation.gif)
+![Meteogram example](docs/example.png)
 
 You can read about the background to this project in [this blog post](https://ianrenton.com/blog/making-meteograms-in-python/).
 
@@ -15,13 +15,10 @@ You can read about the background to this project in [this blog post](https://ia
 * The purple line shows humidity from 0 to 100%.
 * The vertical yellow bands show hours of daylight, named for their day of the week, and the solid yellow vertical line shows the current time when the meteogram was generated.
 * Weather symbols across the bottom of the meteogram are based on the forecasted conditions.
+* Bars across the bottom of the display warn of frosts and storms, and will also display good days for drying laundry outside.
 * All of these features can be toggled on and off, colours changed, etc. in a config file.
 
-![Meteogram example](docs/example.png)
-
-## Future Plans
-
-* Laundry hanging-out time
+![Meteogram animation](docs/animation.gif)
 
 ## Running your own copy
 
