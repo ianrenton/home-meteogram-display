@@ -65,6 +65,36 @@ def cluster_and_get_start_end_times(indices, all_date_times):
     return output
 
 
+# Given a set of event bars, and a new bar, count how many of the set are overlapped by the new one
+def count_overlapping_bars(bars, new_bar):
+    count = 0
+    for test_bar in bars:
+        latest_start = max(new_bar["start"], test_bar["start"])
+        earliest_end = min(new_bar["end"], test_bar["end"])
+        if earliest_end - latest_start > timedelta(0):
+            count += 1
+    return count
+
+
+# Given a set of event bars, calculate how many of them are present at the given time
+def count_bars_at_time(bars, time):
+    return sum(1 for b in bars if b["start"] < time < b["end"])
+
+
+# Given a set of event bars, calculate the maximum number of simultaneous ones, i.e. the number of
+# lines that would be required to display them all without overlap
+def count_max_bars_at_time(bars):
+    first_event_start = min(map(lambda b: b["start"], bars))
+    first_event_end = max(map(lambda b: b["end"], bars))
+    duration = first_event_end - first_event_start
+    hour_count = duration.days * 24 + duration.seconds // 3600
+    max_simultaneous_events = 0
+    for test_time in (first_event_start + timedelta(hours=n) for n in range(hour_count)):
+        simultaneous_events = count_bars_at_time(bars, test_time)
+        max_simultaneous_events = max(max_simultaneous_events, simultaneous_events)
+    return max_simultaneous_events
+
+
 # ## MAIN PROGRAM CODE
 
 # Prepare data storage
@@ -164,12 +194,21 @@ for day in day_list:
         weather_code = rep["W"]
         weather_codes.append(int(weather_code))
 
+first_time = date_times[0]
+last_time = date_times[len(date_times) - 1]
+
 # Create a suntime object, we will need this later
 sun = suntime.Sun(latitude, longitude)
 
+# Figure out which extra lines should be enabled
+show_weather_icons = config["enable_features"]["weather_icons"]
+show_condition_bars = config["enable_features"]["condition_bars"]
+show_calendar_events = config["enable_features"]["calendar_events"]
+max_calendar_event_bar_rows = config["style"]["max_calendar_event_bar_rows"]
+
 # If we're displaying condition bars, calculate them now. We need to do this early because if
 # we have some we will need to size the rest of the figure to allow space for them.
-if config["enable_features"]["condition_bars"]:
+if show_condition_bars:
     print("Calculating condition bars...")
     # Extract regions of the forecast that correspond to frosty or stormy conditions
     frosty_indices = [i for i in range(len(temperatures))
@@ -225,10 +264,10 @@ if config["enable_features"]["condition_bars"]:
 # If we're displaying calendar events, fetch from the internet. We need to do this early because if
 # we have events (and particularly events at overlapping times) we will need to size the rest of
 # the figure to allow space for them.
-if config["enable_features"]["calendar_events"]:
+if show_calendar_events:
     print("Fetching calendar events...")
     for calendar in config["calendars"]:
-        event_list = events(calendar["url"])
+        event_list = events(url=calendar["url"], start=first_time, end=last_time)
         for event in event_list:
             # For all-day events, constrain to sunrise/sunset time. Silly but it makes it look nicer when it lines up
             start = sun.get_sunrise_time(event.start.date()) if event.all_day else event.start
@@ -236,23 +275,33 @@ if config["enable_features"]["calendar_events"]:
             # Build up the list
             event_bars.append(dict(text=event.summary, start=start, end=end, color=calendar["color"]))
 
+# Find the maximum number of conflicting events
+event_lines_required = min(count_max_bars_at_time(event_bars), max_calendar_event_bar_rows)
+print(event_lines_required)
+
+# Disable extra lines if there's nothing to display on them
+if not len(condition_bars):
+    show_condition_bars = False
+if not len(event_bars):
+    show_calendar_events = False
+
 # Calculate the vertical alignment of various components based on what is enabled
 plot_bottom_y_pos = 0
 weather_icon_y_pos = 0.07
 condition_y0_pos = -0.03
 condition_y1_pos = 0.07
-event_y0_pos = -0.03
-event_y1_pos = 0.07
-if config["enable_features"]["weather_icons"]:
+events_y0_pos = -0.03
+events_y1_pos = 0.07
+if show_weather_icons:
     plot_bottom_y_pos += 0.08
-if config["enable_features"]["condition_bars"]:
+if show_condition_bars:
     plot_bottom_y_pos += 0.12
     weather_icon_y_pos += 0.12
-if config["enable_features"]["calendar_events"]:
-    plot_bottom_y_pos += 0.12
-    weather_icon_y_pos += 0.12
-    condition_y0_pos += 0.12
-    condition_y1_pos += 0.12
+if show_calendar_events:
+    plot_bottom_y_pos += 0.12 * event_lines_required
+    weather_icon_y_pos += 0.12 * event_lines_required
+    condition_y0_pos += 0.12 * event_lines_required
+    condition_y1_pos += 0.12 * event_lines_required
 
 # Create plots
 print("Plotting data...")
@@ -341,7 +390,7 @@ fig["layout"].update(height=config["plot_size"]["height"],
                                  showgrid=False, zeroline=False, showticklabels=False, overlaying="y"))
 
 # If we're displaying weather symbols, add them to the figure
-if config["enable_features"]["weather_icons"]:
+if show_weather_icons:
     print("Adding weather icons...")
     # For each forecast point, look up the icon for its weather code, and add it to the display
     for i in range(0, len(date_times)):
@@ -350,7 +399,7 @@ if config["enable_features"]["weather_icons"]:
                              yref="paper", xanchor="center", sizex=8000000, sizey=1)
 
 # If we're displaying condition bars, calculate where they should be and add them to the figure
-if config["enable_features"]["condition_bars"]:
+if show_condition_bars:
     print("Adding condition bars...")
     # Display the date/time blocks on the figure
     for bar in condition_bars:
@@ -366,17 +415,23 @@ if config["enable_features"]["condition_bars"]:
 
 # If we're displaying calendar events, fetch from the internet, calculate where they should be placed,
 # and add them to the figure
-if config["enable_features"]["calendar_events"]:
+if show_calendar_events:
     print("Adding calendar events...")
+    already_added_event_bars = []
     for bar in event_bars:
-        fig.add_shape(type="rect",
-                      x0=bar["start"].timestamp() * 1000, x1=bar["end"].timestamp() * 1000, xref="x",
-                      y0=event_y0_pos, y1=event_y1_pos, yref="paper",
-                      label=dict(text=bar["text"],
-                                 font=dict(color=bar["color"],
-                                           size=config["style"]["calendar_event_bars_font_size"])),
-                      fillcolor=bar["color"], opacity=config["style"]["calendar_event_bars_opacity"],
-                      layer="below")
+        add_to_row = count_overlapping_bars(already_added_event_bars, bar)
+        if add_to_row < max_calendar_event_bar_rows:
+            y0_pos = events_y0_pos + 0.12 * (max_calendar_event_bar_rows - add_to_row - 1)
+            y1_pos = events_y1_pos + 0.12 * (max_calendar_event_bar_rows - add_to_row - 1)
+            fig.add_shape(type="rect",
+                          x0=bar["start"].timestamp() * 1000, x1=bar["end"].timestamp() * 1000, xref="x",
+                          y0=y0_pos, y1=y1_pos, yref="paper",
+                          label=dict(text=bar["text"],
+                                     font=dict(color=bar["color"],
+                                               size=config["style"]["calendar_event_bars_font_size"])),
+                          fillcolor=bar["color"], opacity=config["style"]["calendar_event_bars_opacity"],
+                          layer="below")
+        already_added_event_bars.append(bar)
 
 # If we have frosty temperatures, add horizontal lines at the appropriate temperatures
 if min(temperatures) <= config["frost_storm_warning"]["frost_temp"]:
@@ -406,7 +461,7 @@ for day in dates:
 
 # We may have drawn a daytime block or laundry day block before the start of data, or a laundry day block past the end
 # of the data, so go back and update the x-axis range to constrain it to the datetimes of the first and last data points
-fig["layout"].update(xaxis=dict(range=[date_times[0], date_times[len(date_times) - 1]]))
+fig["layout"].update(xaxis=dict(range=[first_time, last_time]))
 
 # Mark "now" time
 # noinspection PyTypeChecker

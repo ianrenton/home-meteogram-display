@@ -91,6 +91,7 @@ style:
   condition_bars_font_size: 16
   calendar_event_bars_opacity: 0.2
   calendar_event_bars_font_size: 16
+  max_calendar_event_bar_rows: 3
   frost_line_style: "dot"
   frost_line_opacity: 1.0
   background_color: "black"
