@@ -67,53 +67,6 @@ def cluster_and_get_start_end_times(indices, all_date_times):
 
 # ## MAIN PROGRAM CODE
 
-# Load config
-print("Loading configuration...")
-
-cacheFile = pathlib.Path("config.yml")
-if not cacheFile.exists():
-    print("The config.yml file does not exist. You will need to create this by copying config.yml.example and filling "
-          "in the required parameters. See the README for more information.")
-    sys.exit(1)
-
-with open('config.yml', 'r') as file:
-    config = yaml.safe_load(file)
-
-if not config["met_office_api"]["key"]:
-    print("Your Met Office Datapoint API key is not set. Copy the 'config.yml.example' file to 'config.yml' and "
-          "insert your key. Then try running this software again.")
-    sys.exit(1)
-
-# Build API URL
-api_url = "http://datapoint.metoffice.gov.uk/public/data/val/wxfcs/all/json/" \
-          + str(config["met_office_api"]["location_code"]) + "?res=3hourly&key=" + config["met_office_api"]["key"]
-
-# Check if we already fetched data recently
-readFromFile = False
-data_json = ""
-cacheFile = pathlib.Path(config["files"]["cache_file_name"])
-if cacheFile.exists() and datetime.fromtimestamp(
-        cacheFile.stat().st_mtime) > datetime.now() - timedelta(minutes=10):
-    # Already got recent data, so use it if possible
-    print("Cache file was updated less than 10 minutes ago, re-using that to spare the API...")
-    data_json = cacheFile.read_text()
-    if data_json:
-        readFromFile = True
-    else:
-        print("Tried and failed to read cache file, will query API instead.")
-
-if not readFromFile:
-    # Didn't have recent cached data so query the API for new data
-    print("Querying API...")
-    data_json = urllib.request.urlopen(api_url).read()
-    if data_json:
-        print("Writing local cache file...")
-        cacheFile.write_text(json.dumps(json.loads(data_json)))
-    else:
-        print("Could not query the Met Office Datapoint API. Check your API key is correct and that you have internet "
-              "connectivity.")
-        sys.exit(1)
-
 # Prepare data storage
 dates = []
 date_times = []
@@ -125,16 +78,65 @@ wind_gusts = []
 wind_dirs = []
 humidities = []
 weather_codes = []
+condition_bars = []
+event_bars = []
 
-# Parse data into useful forms for plotting.
+# Load config
+print("Loading configuration...")
+config_file = pathlib.Path("config.yml")
+if not config_file.exists():
+    print(
+        "The config.yml file does not exist. You will need to create this by copying config.yml.example and filling"
+        "in the required parameters. See the README for more information.")
+    sys.exit(1)
+
+with open('config.yml', 'r') as file:
+    config = yaml.safe_load(file)
+
+if not config["met_office_api"]["key"]:
+    print("Your Met Office Datapoint API key is not set. Copy the 'config.yml.example' file to 'config.yml' and "
+          "insert your key. Then try running this software again.")
+    sys.exit(1)
+
+# Build API URL
+api_url = "http://datapoint.metoffice.gov.uk/public/data/val/wxfcs/all/json/" + str(
+    config["met_office_api"]["location_code"]) + "?res=3hourly&key=" + config["met_office_api"]["key"]
+
+# Check if we already fetched data recently
+read_from_file = False
+data_json = ""
+cache_file = pathlib.Path(config["files"]["cache_file_name"])
+if cache_file.exists() and datetime.fromtimestamp(
+        cache_file.stat().st_mtime) > datetime.now() - timedelta(minutes=10):
+    # Already got recent data, so use it if possible
+    print("Weather cache file was updated less than 10 minutes ago, re-using that to spare the API...")
+    data_json = cache_file.read_text()
+    if data_json:
+        read_from_file = True
+    else:
+        print("Tried and failed to read cache file, will query API instead.")
+if not read_from_file:
+    # Didn't have recent cached data so query the API for new data
+    print("Querying weather API...")
+    data_json = urllib.request.urlopen(api_url).read()
+    if data_json:
+        print("Writing local cache file...")
+        cache_file.write_text(json.dumps(json.loads(data_json)))
+    else:
+        print(
+            "Could not query the Met Office Datapoint API. Check your API key is correct and that you have internet"
+            "connectivity.")
+        sys.exit(1)
+weather_data = json.loads(data_json)
+
+# Parse weather API data into useful forms for plotting.
 # See https://www.metoffice.gov.uk/binaries/content/assets/metofficegovuk/pdf/data/datapoint_api_reference.pdf
 # for format data and examples.
-print("Extracting data...")
-data = json.loads(data_json)
-latitude = float(data["SiteRep"]["DV"]["Location"]["lat"])
-longitude = float(data["SiteRep"]["DV"]["Location"]["lon"])
-day_list = data["SiteRep"]["DV"]["Location"]["Period"]
-frosty_temp = False
+print("Extracting weather data...")
+latitude = float(weather_data["SiteRep"]["DV"]["Location"]["lat"])
+longitude = float(weather_data["SiteRep"]["DV"]["Location"]["lon"])
+day_list = weather_data["SiteRep"]["DV"]["Location"]["Period"]
+
 # Iterate over the days in the data
 for day in day_list:
     date = pytz.utc.localize(datetime.strptime(day["value"], "%Y-%m-%dZ"))
@@ -162,13 +164,95 @@ for day in day_list:
         weather_code = rep["W"]
         weather_codes.append(int(weather_code))
 
-# Record whether we have any frosty temperatures in the forecast, this will cause the frost & ice lines to display
-# on the plot later on
-if min(temperatures) <= config["frost_storm_warning"]["frost_temp"]:
-    frosty_temp = True
-
 # Create a suntime object, we will need this later
 sun = suntime.Sun(latitude, longitude)
+
+# If we're displaying condition bars, calculate them now. We need to do this early because if
+# we have some we will need to size the rest of the figure to allow space for them.
+if config["enable_features"]["condition_bars"]:
+    print("Calculating condition bars...")
+    # Extract regions of the forecast that correspond to frosty or stormy conditions
+    frosty_indices = [i for i in range(len(temperatures))
+                      if temperatures[i] <= config["frost_storm_warning"]["frost_temp"]]
+    wet_indices = [i for i in range(len(precip_probs))
+                   if precip_probs[i] >= config["frost_storm_warning"]["storm_precip_prob"]]
+    windy_indices = [i for i in range(len(wind_gusts))
+                     if wind_gusts[i] >= config["frost_storm_warning"]["storm_gust_speed"]]
+    # Stormy = wet + windy
+    stormy_indices = [i for i in wet_indices if i in windy_indices]
+    # Storminess takes precedence so remove any frosty indices that are also stormy
+    frosty_indices = [i for i in frosty_indices if i not in stormy_indices]
+
+    # Cluster them into date/time blocks
+    frosty_cluster_datetimes = cluster_and_get_start_end_times(frosty_indices, date_times)
+    stormy_cluster_datetimes = cluster_and_get_start_end_times(stormy_indices, date_times)
+
+    # Build up the list
+    for c in frosty_cluster_datetimes:
+        condition_bars.append(dict(text="Frost", start=c[0], end=c[1],
+                                   color=config["style"]["frost_color"]))
+    for c in stormy_cluster_datetimes:
+        condition_bars.append(dict(text="Storm", start=c[0], end=c[1],
+                                   color=config["style"]["storm_color"]))
+
+    # Calculate good laundry days
+    print("Calculating good laundry days...")
+    for day in dates:
+        # Start time for laundry is sunrise or our "hanging out" time, whichever is later.
+        # End time is sunset.
+        laundry_start_time = max(sun.get_sunrise_time(day.date()),
+                                 day + timedelta(hours=config["laundry_day"]["hang_out_time"]))
+        laundry_end_time = sun.get_sunset_time(day.date())
+
+        if laundry_end_time - laundry_start_time >= timedelta(hours=config["laundry_day"]["min_hours_daylight"]):
+            # Enough hours daylight, extract indices during the drying period
+            daytime_indices = [i for i in range(len(date_times)) if
+                               laundry_start_time <= date_times[i] <= laundry_end_time]
+            mean_temp = statistics.mean([temperatures[i] for i in daytime_indices])
+            mean_humidity = statistics.mean([humidities[i] for i in daytime_indices])
+            max_precip_prob = max([precip_probs[i] for i in daytime_indices])
+
+            # Check logic for being a good laundry day. If so, add the condition bar
+            if mean_temp >= config["laundry_day"]["min_average_temp"] and \
+                    mean_humidity <= config["laundry_day"]["max_average_humidity"] and \
+                    max_precip_prob <= config["laundry_day"]["max_precip_prob"]:
+                # Build up the list
+                condition_bars.append(dict(text="Laundry Day",
+                                           start=sun.get_sunrise_time(day.date()),
+                                           end=sun.get_sunset_time(day.date()),
+                                           color=config["style"]["laundry_day_color"]))
+
+# If we're displaying calendar events, fetch from the internet. We need to do this early because if
+# we have events (and particularly events at overlapping times) we will need to size the rest of
+# the figure to allow space for them.
+if config["enable_features"]["calendar_events"]:
+    print("Fetching calendar events...")
+    for calendar in config["calendars"]:
+        event_list = events(calendar["url"])
+        for event in event_list:
+            # For all-day events, constrain to sunrise/sunset time. Silly but it makes it look nicer when it lines up
+            start = sun.get_sunrise_time(event.start.date()) if event.all_day else event.start
+            end = sun.get_sunset_time(event.start.date()) if event.all_day else event.end
+            # Build up the list
+            event_bars.append(dict(text=event.summary, start=start, end=end, color=calendar["color"]))
+
+# Calculate the vertical alignment of various components based on what is enabled
+plot_bottom_y_pos = 0
+weather_icon_y_pos = 0.07
+condition_y0_pos = -0.03
+condition_y1_pos = 0.07
+event_y0_pos = -0.03
+event_y1_pos = 0.07
+if config["enable_features"]["weather_icons"]:
+    plot_bottom_y_pos += 0.08
+if config["enable_features"]["condition_bars"]:
+    plot_bottom_y_pos += 0.12
+    weather_icon_y_pos += 0.12
+if config["enable_features"]["calendar_events"]:
+    plot_bottom_y_pos += 0.12
+    weather_icon_y_pos += 0.12
+    condition_y0_pos += 0.12
+    condition_y1_pos += 0.12
 
 # Create plots
 print("Plotting data...")
@@ -229,15 +313,6 @@ if config["enable_plots"]["humidity"]:
 fig = plotly.subplots.make_subplots()
 fig.add_traces(traces)
 
-# Calculate how much space we need to leave below the X axis for displaying other things
-space_below_x_axis = 0
-if config["enable_features"]["weather_icons"]:
-    space_below_x_axis += 0.08
-if config["enable_features"]["condition_bars"]:
-    space_below_x_axis += 0.12
-if config["enable_features"]["calendar_events"]:
-    space_below_x_axis += 0.12
-
 # Configure layout
 print("Configuring layout...")
 fig["layout"].update(height=config["plot_size"]["height"],
@@ -248,19 +323,19 @@ fig["layout"].update(height=config["plot_size"]["height"],
                      margin=dict(l=0, r=5, t=0, b=10),
                      xaxis=dict(domain=[0, 0.97],
                                 visible=False, showgrid=False, zeroline=False),
-                     yaxis1=dict(domain=[space_below_x_axis, 1.0], side="right", anchor="free", position=0.98,
+                     yaxis1=dict(domain=[plot_bottom_y_pos, 1.0], side="right", anchor="free", position=0.98,
                                  range=[config["scale"]["min_temp"], config["scale"]["max_temp"]],
                                  tickfont=dict(color=config["style"]["temp_color"], size=16),
                                  showgrid=False, zeroline=False),
-                     yaxis2=dict(domain=[space_below_x_axis, 1.0], side="right", anchor="free", position=0.98,
+                     yaxis2=dict(domain=[plot_bottom_y_pos, 1.0], side="right", anchor="free", position=0.98,
                                  range=[0.0, 100.0],
                                  tickfont=dict(color=config["style"]["precip_color"], size=16),
                                  showgrid=False, zeroline=False, showticklabels=False, overlaying="y"),
-                     yaxis3=dict(domain=[space_below_x_axis, 1.0], side="right", anchor="free", position=1.00,
+                     yaxis3=dict(domain=[plot_bottom_y_pos, 1.0], side="right", anchor="free", position=1.00,
                                  range=[0.0, config["scale"]["max_wind_speed"]],
                                  tickfont=dict(color=config["style"]["wind_color"], size=16),
                                  showgrid=False, zeroline=False, overlaying="y"),
-                     yaxis4=dict(domain=[space_below_x_axis, 1.0], side="right", anchor="free", position=1.00,
+                     yaxis4=dict(domain=[plot_bottom_y_pos, 1.0], side="right", anchor="free", position=1.00,
                                  range=[0.0, 100.0],
                                  tickfont=dict(color=config["style"]["humidity_color"], size=16),
                                  showgrid=False, zeroline=False, showticklabels=False, overlaying="y"))
@@ -268,12 +343,6 @@ fig["layout"].update(height=config["plot_size"]["height"],
 # If we're displaying weather symbols, add them to the figure
 if config["enable_features"]["weather_icons"]:
     print("Adding weather icons...")
-    weather_icon_y_pos = 0.07
-    if config["enable_features"]["condition_bars"]:
-        weather_icon_y_pos += 0.12
-    if config["enable_features"]["calendar_events"]:
-        weather_icon_y_pos += 0.12
-
     # For each forecast point, look up the icon for its weather code, and add it to the display
     for i in range(0, len(date_times)):
         image = PIL.Image.open(config["files"]["weather_icon_folder"] + "/" + WEATHER_ICON_LOOKUP[weather_codes[i]])
@@ -283,111 +352,34 @@ if config["enable_features"]["weather_icons"]:
 # If we're displaying condition bars, calculate where they should be and add them to the figure
 if config["enable_features"]["condition_bars"]:
     print("Adding condition bars...")
-    # Extract regions of the forecast that correspond to frosty or stormy conditions
-    frosty_indices = [i for i in range(len(temperatures))
-                      if temperatures[i] <= config["frost_storm_warning"]["frost_temp"]]
-    wet_indices = [i for i in range(len(precip_probs))
-                   if precip_probs[i] >= config["frost_storm_warning"]["storm_precip_prob"]]
-    windy_indices = [i for i in range(len(wind_gusts))
-                     if wind_gusts[i] >= config["frost_storm_warning"]["storm_gust_speed"]]
-    # Stormy = wet + windy
-    stormy_indices = [i for i in wet_indices if i in windy_indices]
-    # Storminess takes precedence so remove any frosty indices that are also stormy
-    frosty_indices = [i for i in frosty_indices if i not in stormy_indices]
-
-    # Cluster them into date/time blocks
-    frosty_cluster_datetimes = cluster_and_get_start_end_times(frosty_indices, date_times)
-    stormy_cluster_datetimes = cluster_and_get_start_end_times(stormy_indices, date_times)
-
     # Display the date/time blocks on the figure
-    condition_y0_pos = -0.03
-    condition_y1_pos = 0.07
-    if config["enable_features"]["calendar_events"]:
-        condition_y0_pos += 0.12
-        condition_y1_pos += 0.12
-    for c in frosty_cluster_datetimes:
+    for bar in condition_bars:
         # noinspection PyTypeChecker
         fig.add_shape(type="rect",
-                      x0=c[0], x1=c[1], xref="x",
+                      x0=bar["start"].timestamp() * 1000, x1=bar["end"].timestamp() * 1000, xref="x",
                       y0=condition_y0_pos, y1=condition_y1_pos, yref="paper",
-                      label=dict(text="FROST", font=dict(color=config["style"]["frost_color"],
-                                                         size=config["style"]["condition_bars_font_size"])),
-                      fillcolor=config["style"]["frost_color"],
+                      label=dict(text=bar["text"], font=dict(color=bar["color"],
+                                                             size=config["style"]["condition_bars_font_size"])),
+                      fillcolor=bar["color"],
                       opacity=config["style"]["condition_bars_opacity"],
                       layer="below")
-    for c in stormy_cluster_datetimes:
-        # noinspection PyTypeChecker
-        fig.add_shape(type="rect",
-                      x0=c[0], x1=c[1], xref="x",
-                      y0=condition_y0_pos, y1=condition_y1_pos, yref="paper",
-                      label=dict(text="STORM", font=dict(color=config["style"]["storm_color"],
-                                                         size=config["style"]["condition_bars_font_size"])),
-                      fillcolor=config["style"]["storm_color"],
-                      opacity=config["style"]["condition_bars_opacity"],
-                      layer="below")
-
-    # Calculate good laundry days
-    print("Calculating good laundry days...")
-    for day in dates:
-        # Start time for laundry is sunrise or our "hanging out" time, whichever is later.
-        # End time is sunset.
-        laundry_start_time = max(sun.get_sunrise_time(day.date()),
-                                 day + timedelta(hours=config["laundry_day"]["hang_out_time"]))
-        laundry_end_time = sun.get_sunset_time(day.date())
-
-        if laundry_end_time - laundry_start_time >= timedelta(hours=config["laundry_day"]["min_hours_daylight"]):
-            # Enough hours daylight, extract indices during the drying period
-            daytime_indices = [i for i in range(len(date_times)) if
-                               laundry_start_time <= date_times[i] <= laundry_end_time]
-            mean_temp = statistics.mean([temperatures[i] for i in daytime_indices])
-            mean_humidity = statistics.mean([humidities[i] for i in daytime_indices])
-            max_precip_prob = max([precip_probs[i] for i in daytime_indices])
-
-            # Check logic for being a good laundry day. If so, add the condition bar
-            if mean_temp >= config["laundry_day"]["min_average_temp"] and \
-                    mean_humidity <= config["laundry_day"]["max_average_humidity"] \
-                    and max_precip_prob <= config["laundry_day"]["max_precip_prob"]:
-                # noinspection PyTypeChecker
-                fig.add_shape(type="rect",
-                              x0=sun.get_sunrise_time(day.date()).timestamp() * 1000,
-                              x1=sun.get_sunset_time(day.date()).timestamp() * 1000, xref="x",
-                              y0=condition_y0_pos, y1=condition_y1_pos, yref="paper",
-                              label=dict(text="LAUNDRY DAY", font=dict(color=config["style"]["laundry_day_color"],
-                                                                       size=config["style"][
-                                                                           "condition_bars_font_size"])),
-                              fillcolor=config["style"]["laundry_day_color"],
-                              opacity=config["style"]["condition_bars_opacity"],
-                              layer="below")
 
 # If we're displaying calendar events, fetch from the internet, calculate where they should be placed,
 # and add them to the figure
 if config["enable_features"]["calendar_events"]:
     print("Adding calendar events...")
-    event_y0_pos = -0.03
-    event_y1_pos = 0.07
-
-    for calendar in config["calendars"]:
-        eventList = events(calendar["url"])
-        for event in eventList:
-            # For all-day events, constrain to sunrise/sunset time. Silly but it makes it look nicer when it lines up
-            start = event.start
-            end = event.end
-            if event.all_day:
-                start = sun.get_sunrise_time(start.date())
-                end = sun.get_sunset_time(start.date())
-
-            # Add to figure
-            fig.add_shape(type="rect",
-                          x0=start.timestamp() * 1000, x1=end.timestamp() * 1000, xref="x",
-                          y0=event_y0_pos, y1=event_y1_pos, yref="paper",
-                          label=dict(text=event.summary,
-                                     font=dict(color=calendar["color"],
-                                               size=config["style"]["calendar_event_bars_font_size"])),
-                          fillcolor=calendar["color"], opacity=config["style"]["calendar_event_bars_opacity"],
-                          layer="below")
+    for bar in event_bars:
+        fig.add_shape(type="rect",
+                      x0=bar["start"].timestamp() * 1000, x1=bar["end"].timestamp() * 1000, xref="x",
+                      y0=event_y0_pos, y1=event_y1_pos, yref="paper",
+                      label=dict(text=bar["text"],
+                                 font=dict(color=bar["color"],
+                                           size=config["style"]["calendar_event_bars_font_size"])),
+                      fillcolor=bar["color"], opacity=config["style"]["calendar_event_bars_opacity"],
+                      layer="below")
 
 # If we have frosty temperatures, add horizontal lines at the appropriate temperatures
-if frosty_temp:
+if min(temperatures) <= config["frost_storm_warning"]["frost_temp"]:
     print("Adding frost lines...")
     fig.add_hline(y=config["frost_storm_warning"]["frost_temp"],
                   line_color=config["style"]["frost_color"],
