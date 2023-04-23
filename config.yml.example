@@ -1,0 +1,102 @@
+# Environment variables setup.
+# Fill in your API key, location etc. and rename this file to ".env".
+# See README for more information.
+
+# Met Office Datapoint API key and location code (see README).
+met_office_api:
+  key: ""
+  location_code: 354062
+
+# Plot size parameters, in pixels. Will set the output size of the image.
+plot_size:
+  width: 1480
+  height: 320
+
+# Enable/disable plots.
+enable_plots:
+  temp: true
+  wind: true
+  gust: true
+  precip_prob: true
+  humidity: false
+
+# Enable/disable features.
+enable_features:
+  weather_icons: true
+  condition_bars: true
+  calendar_events: true
+
+# Use the "feels like" temperature instead of "real" screen temperature?
+use_feels_like_temp: False
+
+# Scale parameters. Tweak as required for your local conditions.
+# Precipitation probability and humidity are always 0-100% over the scale and cannot be altered.
+scale:
+  # Temperature at the top of the scale (C)
+  max_temp: 30
+  # Temperature at the bottom of the scale (C)
+  min_temp: -5
+  # Wind speed at the top of the scale (mph)
+  max_wind_speed: 35
+
+# Frost/storm warning calculation parameters.
+frost_storm_warning:
+  # Frost warning if temperature falls below this (C)
+  frost_temp: 4
+  # Storm warning if wind gust speed is above this (mph)
+  storm_gust_speed: 30
+  # Storm warning if precipitation probability is above this (%)
+  storm_precip_prob: 30
+
+# Laundry day calculation parameters.
+laundry_day:
+  # Time of the morning at which you'll be hanging out laundry (hours since midnight, e.g. enter
+  # 10.5 for 10:30 am).  Local time.
+  hang_out_time: 10
+  # Number of hours of daylight left after the above time, before sunset, required for a good
+  # laundry day
+  min_hours_daylight: 7
+  # Average temperature over the drying period must be at least this for a good laundry day.
+  min_average_temp: 8
+  # Average humidity over the drying period must be less than this for a good laundry day.
+  max_average_humidity: 80
+  # Precipitation probability over the drying period must be less than this for a good laundry day.
+  max_precip_prob: 10
+
+# Calendar URLs and colours
+calendars:
+  - url: "https://www.gov.uk/bank-holidays/england-and-wales.ics"
+    color: "yellow"
+# Add more calendars by uncommenting and copy-pasting these lines:
+#  - url: ""
+#    color: "dodgerblue"
+
+# Meteogram and general plot colour and style parameters
+style:
+  temp_color: "firebrick"
+  precip_color: "dodgerblue"
+  wind_color: "forestgreen"
+  gust_color: "#004400"
+  gust_line_style: "dash"
+  humidity_color: "rebeccapurple"
+  daytime_color: "yellow"
+  daytime_opacity: 0.1
+  now_line_color: "yellow"
+  date_axis_color: "white"
+  frost_color: "powderblue"
+  ice_color: "white"
+  storm_color: "blueviolet"
+  laundry_day_color: "yellow"
+  condition_bars_opacity: 0.2
+  condition_bars_font_size: 16
+  calendar_event_bars_opacity: 0.2
+  calendar_event_bars_font_size: 16
+  frost_line_style: "dot"
+  frost_line_opacity: 1.0
+  background_color: "black"
+
+# File management parameters
+files:
+  cache_file_name: "cache.json"
+  output_file_name: "output.png"
+  weather_icon_folder: "icons"

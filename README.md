@@ -1,7 +1,5 @@
-# Python Met Office Meteogram
-A python script to fetch weather forecast data from the UK Met Office Datapoint API, and display it as a Meteogram.
-
-It is designed as a passive weather display for an ultra-widescreen monitor, but the generated image is also suitable for inclusion in web-based dashboards and other types of informational display.
+# Home Meteogram Display
+A python script to display a Meteogram, along with other information. It is designed as a passive weather display for an ultra-widescreen monitor, but the generated image is also suitable for inclusion in web-based dashboards and other types of informational display. Weather forecast data is currently taken from the UK Met Office Datapoint API.
 
 ![Meteogram example](docs/example.png)
 
@@ -16,6 +14,7 @@ You can read about the background to this project in [this blog post](https://ia
 * The vertical yellow bands show hours of daylight, named for their day of the week, and the solid yellow vertical line shows the current time when the meteogram was generated.
 * Weather symbols across the bottom of the meteogram are based on the forecasted conditions.
 * Bars across the bottom of the display warn of frosts and storms, and will also display good days for drying laundry outside.
+* Additional bars aross the bottom of the display can be used to display calendar events.
 * All of these features can be toggled on and off, colours changed, etc. in a config file.
 
 ![Meteogram animation](docs/animation.gif)
@@ -27,8 +26,8 @@ If you would like to use this script for yourself, follow these steps:
 1. Ensure you have python version >= 3.8 installed
 2. Clone the repository from Github
 3. Install the required dependencies by running `pip install -r requirements.txt`
-4. Copy or rename the `.env.example` file to `.env`
-5. Edit `.env` in your preferred editor. You will need:
+4. Copy or rename the `config.yml.example` file to `config.yml`
+5. Edit `config.yml` in your preferred editor. You will need:
     * A Met Office Datapoint API key. These are free, but you need to create an account. [Instructions can be found here](https://www.metoffice.gov.uk/services/data/datapoint/api).
     * Your location code. There is unfortunately no nice public list of these, so you will have to use your API key to look it up. [The documentation for this is here](https://www.metoffice.gov.uk/services/data/datapoint/uk-locations-site-list-detailed-documentation). I found the easiest way was to fetch the complete list of locations by calling `http://datapoint.metoffice.gov.uk/public/data/val/wxfcs/all/json/sitelist?key=YOUR_API_KEY` and searching through the results for my town.
 6. Make any other adjustments to parameters in `.env` based on the climate of your location and your personal preferences, then save it.
