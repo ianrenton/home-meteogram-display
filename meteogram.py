@@ -420,8 +420,8 @@ if show_calendar_events:
     for bar in event_bars:
         add_to_row = count_overlapping_bars(already_added_event_bars, bar)
         if add_to_row < max_calendar_event_bar_rows:
-            y0_pos = events_y0_pos + 0.12 * (max_calendar_event_bar_rows - add_to_row - 1)
-            y1_pos = events_y1_pos + 0.12 * (max_calendar_event_bar_rows - add_to_row - 1)
+            y0_pos = events_y0_pos + 0.12 * (event_lines_required - add_to_row - 1)
+            y1_pos = events_y1_pos + 0.12 * (event_lines_required - add_to_row - 1)
             fig.add_shape(type="rect",
                           x0=bar["start"].timestamp() * 1000, x1=bar["end"].timestamp() * 1000, xref="x",
                           y0=y0_pos, y1=y1_pos, yref="paper",
