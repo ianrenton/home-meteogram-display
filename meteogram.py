@@ -277,7 +277,6 @@ if show_calendar_events:
 
 # Find the maximum number of conflicting events
 event_lines_required = min(count_max_bars_at_time(event_bars), max_calendar_event_bar_rows)
-print(event_lines_required)
 
 # Disable extra lines if there's nothing to display on them
 if not len(condition_bars):
