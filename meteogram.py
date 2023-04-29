@@ -275,7 +275,6 @@ if show_calendar_events:
             # We subtract an hour from the end date because it will come through as 00:00 (next day) and we don't want
             # the event to span an extra day.
             if event.all_day:
-                print(event.summary, event.start.date(), event.end.date())
                 start = sun.get_sunrise_time(event.start.date())
                 end = sun.get_sunset_time((event.end - timedelta(hours=1)).date())
             # Constrain events to the scope of the meteogram, so that long running events aren't so wide that their
