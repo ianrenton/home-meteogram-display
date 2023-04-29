@@ -269,9 +269,21 @@ if show_calendar_events:
     for calendar in config["calendars"]:
         event_list = events(url=calendar["url"], start=first_time, end=last_time)
         for event in event_list:
-            # For all-day events, constrain to sunrise/sunset time. Silly but it makes it look nicer when it lines up
-            start = sun.get_sunrise_time(event.start.date()) if event.all_day else event.start
-            end = sun.get_sunset_time(event.start.date()) if event.all_day else event.end
+            start = event.start
+            end = event.end
+            # For all-day events, constrain to sunrise/sunset time. Silly but it makes it look nicer when it lines up.
+            # We subtract an hour from the end date because it will come through as 00:00 (next day) and we don't want
+            # the event to span an extra day.
+            if event.all_day:
+                print(event.summary, event.start.date(), event.end.date())
+                start = sun.get_sunrise_time(event.start.date())
+                end = sun.get_sunset_time((event.end - timedelta(hours=1)).date())
+            # Constrain events to the scope of the meteogram, so that long running events aren't so wide that their
+            # centrally-positioned text is off-screen
+            if start < first_time:
+                start = first_time
+            if end > last_time:
+                end = last_time
             # Build up the list
             event_bars.append(dict(text=event.summary, start=start, end=end, color=calendar["color"]))
 
