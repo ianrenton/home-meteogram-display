@@ -3,7 +3,7 @@ A python script to display a Meteogram, along with other information. It is desi
 
 ![Meteogram example](docs/example.png)
 
-You can read about the background to this project in [this blog post](https://ianrenton.com/blog/making-meteograms-in-python/).
+You can read about the background to this project in [this blog post](https://ianrenton.com/blog/making-meteograms-in-python/), and if you're interested in the hardware as well, [the full build guide is here](https://ianrenton.com/projects/meteogram/).
 
 ## Features
 
