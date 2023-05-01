@@ -8,7 +8,6 @@ import yaml
 
 # Load config. Exit if it cannot be found or is improperly set up.
 def load_config():
-    print("Loading configuration...")
     config_file = pathlib.Path("config.yml")
     if not config_file.exists():
         print(

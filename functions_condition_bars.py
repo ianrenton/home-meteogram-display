@@ -101,7 +101,6 @@ def generate_storm_condition_bars(forecast, config):
 # Generate a list of condition bars representing good laundry days
 def generate_laundry_day_condition_bars(forecast, config, dates, sun):
     condition_bars = []
-    print("Calculating good laundry days...")
     for day in dates:
         # Start time for laundry is sunrise or our "hanging out" time, whichever is later.
         # End time is sunset.

@@ -6,7 +6,6 @@ from icalevents.icalevents import events
 
 # Generate event bar data from the events on the calendars provided by config.
 def generate_event_bars(config, sun, first_time, last_time):
-    print("Fetching calendar events...")
     event_bars = []
     for calendar in config["calendars"]:
         event_list = events(url=calendar["url"], start=first_time, end=last_time)

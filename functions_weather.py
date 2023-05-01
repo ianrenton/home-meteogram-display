@@ -51,7 +51,6 @@ def get_live_or_cached_weather_data(api_url, cache_file_path, client_key, client
 
 # Given a set of JSON weather data, print the metadata about forecast location and model time.
 def print_weather_metadata(weather_data):
-    print("Extracting weather metadata...")
     forecast_location = dict(name=weather_data["features"][0]["properties"]["location"]["name"],
                              lat=weather_data["features"][0]["geometry"]["coordinates"][1],
                              lon=weather_data["features"][0]["geometry"]["coordinates"][0],
@@ -69,7 +68,6 @@ def print_weather_metadata(weather_data):
 # Combines the hourly and three-hourly JSON datasets from the API, and produces a list of
 # DataPoints sorted by time.
 def build_forecast_datapoint_list(hourly_data, three_hourly_data):
-    print("Extracting weather forecast data...")
     # Iterate through the three-hourly data, converting each entry in the time series to
     # a DataPoint, and adding them to a list
     forecast = []
@@ -90,13 +88,7 @@ def build_forecast_datapoint_list(hourly_data, three_hourly_data):
             dp.load_hourly_data(point)
             forecast.append(dp)
 
-    forecast = sorted(forecast, key=lambda dp2: dp2.time)
-
-    print(
-        "Forecast contains " + str(len(forecast)) + " data points between " + str(forecast[0].time) + " and " + str(
-            forecast[len(forecast) - 1].time))
-
-    return forecast
+    return sorted(forecast, key=lambda dp2: dp2.time)
 
 
 # Get a set of datetimes to use as the x-axis for chart plots. This is just the list of all
