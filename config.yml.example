@@ -2,15 +2,24 @@
 # Fill in your API key, location etc. and rename this file to ".env".
 # See README for more information.
 
-# Met Office Datapoint API key and location code (see README).
-met_office_api:
-  key: ""
-  location_code: 354062
+# Met Office DataHub API client key and secret.
+met_office_datahub_api:
+  client_key: ""
+  client_secret: ""
+
+# Your location, in decimal degrees.
+location:
+  lat: 51.508069
+  lon: -0.1280766
 
 # Plot size parameters, in pixels. Will set the output size of the image.
 plot_size:
   width: 1480
   height: 320
+
+# How many days of forecast to show? Pick a value that makes sense for the width of your plot.
+# Maximum of 7 as we only get 7 days of forecast from the API.
+show_forecast_days: 5
 
 # Enable/disable plots.
 enable_plots:
@@ -36,8 +45,8 @@ scale:
   max_temp: 30
   # Temperature at the bottom of the scale (C)
   min_temp: -5
-  # Wind speed at the top of the scale (mph)
-  max_wind_speed: 35
+  # Wind speed at the top of the scale (knots)
+  max_wind_speed: 45
 
 # Frost/storm warning calculation parameters.
 frost_storm_warning:
@@ -98,6 +107,7 @@ style:
 
 # File management parameters
 files:
-  cache_file_name: "cache.json"
+  cache_file_hourly: ".cache/hourly.json"
+  cache_file_three_hourly: ".cache/three_hourly.json"
   output_file_name: "output.png"
   weather_icon_folder: "icons"
