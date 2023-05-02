@@ -146,7 +146,7 @@ print("Adding units...")
 add_units(fig, config, condition_y1_pos)
 
 print("Adding \"now\" line...")
-fig.add_vline(x=datetime.utcnow().timestamp() * 1000, line_color=config["style"]["now_line_color"])
+fig.add_vline(x=pytz.utc.localize(datetime.utcnow()).timestamp() * 1000, line_color=config["style"]["now_line_color"])
 
 # We may have drawn a daytime block or laundry day block before the start of data, or a laundry day block past the end
 # of the data, so go back and update the x-axis range to constrain it to the datetimes of the first and last data points
