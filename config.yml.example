@@ -12,7 +12,9 @@ location:
   lat: 51.508069
   lon: -0.1280766
 
-# Plot size parameters, in pixels. Will set the output size of the image.
+# Plot size parameters, in pixels. Will set the output size of the image. Note that since the
+# switch from Plotly to Matplotlib, which deals in inches and DPI, this output size will only
+# be approximate, but it should be within 1%.
 plot_size:
   width: 1480
   height: 320
@@ -86,7 +88,7 @@ style:
   precip_color: "dodgerblue"
   wind_color: "forestgreen"
   gust_color: "#004400"
-  gust_line_style: "dash"
+  gust_line_style: "dashed"
   humidity_color: "rebeccapurple"
   daytime_color: "yellow"
   daytime_opacity: 0.1
@@ -97,11 +99,11 @@ style:
   storm_color: "blueviolet"
   laundry_day_color: "yellow"
   condition_bars_opacity: 0.2
-  condition_bars_font_size: 16
+  condition_bars_font_size: 10
   calendar_event_bars_opacity: 0.2
-  calendar_event_bars_font_size: 16
+  calendar_event_bars_font_size: 10
   max_calendar_event_bar_rows: 3
-  frost_line_style: "dot"
+  frost_line_style: "dotted"
   frost_line_opacity: 1.0
   background_color: "black"
 
