@@ -110,16 +110,17 @@ def generate_laundry_day_condition_bars(forecast, config, dates, sun):
         laundry_start_time = max(sun.get_sunrise_time(day),
                                  pytz.utc.localize(datetime.combine(day, datetime.min.time()))
                                  + timedelta(hours=config["laundry_day"]["hang_out_time"]))
+        laundry_dry_time = laundry_start_time + timedelta(hours=config["laundry_day"]["min_hours_daylight"])
         laundry_end_time = sun.get_sunset_time(day)
 
-        if laundry_end_time - laundry_start_time >= timedelta(hours=config["laundry_day"]["min_hours_daylight"]):
+        if laundry_dry_time <= laundry_end_time:
             # Enough hours daylight, extract indices during the drying period
-            daytime_indices = [i for i in range(len(forecast)) if
-                               laundry_start_time <= forecast[i].time <= laundry_end_time]
-            if len(daytime_indices) > 0:
-                mean_temp = statistics.mean([get_temperatures(forecast)[i] for i in daytime_indices])
-                mean_humidity = statistics.mean([get_humidities(forecast)[i] for i in daytime_indices])
-                max_precip_prob = max([get_precip_probs(forecast)[i] for i in daytime_indices])
+            drying_indices = [i for i in range(len(forecast)) if
+                              laundry_start_time <= forecast[i].time <= laundry_dry_time]
+            if len(drying_indices) > 0:
+                mean_temp = statistics.mean([get_temperatures(forecast)[i] for i in drying_indices])
+                mean_humidity = statistics.mean([get_humidities(forecast)[i] for i in drying_indices])
+                max_precip_prob = max([get_precip_probs(forecast)[i] for i in drying_indices])
 
                 # Check logic for being a good laundry day. If so, add the condition bar
                 if mean_temp >= config["laundry_day"]["min_average_temp"] and \
