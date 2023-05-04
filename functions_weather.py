@@ -39,6 +39,7 @@ def get_live_or_cached_weather_data(api_url, cache_file_path, client_key, client
         data_json = resp.read()
         if data_json:
             print("Writing local cache file...")
+            cache_file.parent.mkdir(exist_ok=True, parents=True)
             cache_file.write_text(json.dumps(json.loads(data_json), indent=2))
         else:
             print(
