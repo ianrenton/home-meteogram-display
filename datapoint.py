@@ -52,7 +52,7 @@ class DataPoint:
         if "screenTemperature" in data:
             self.air_temp_C = data["screenTemperature"]
         elif "minScreenAirTemp" in data and "maxScreenAirTemp" in data:
-            self.air_temp_C = data["maxScreenAirTemp"] + data["minScreenAirTemp"] / 2.0
+            self.air_temp_C = (data["maxScreenAirTemp"] + data["minScreenAirTemp"]) / 2.0
         if "feelsLikeTemp" in data:
             self.feels_like_temp_C = data["feelsLikeTemp"]
         if "feelsLikeTemperature" in data:
