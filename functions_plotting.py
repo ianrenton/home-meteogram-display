@@ -161,11 +161,11 @@ def add_traces(fig, forecast, config):
 # Annotate figure with units
 def add_units(fig, config, y_pos_fraction):
     if config["enable_plots"]["temp"]:
-        fig.axes[0].annotate("C", (1.01, y_pos_fraction),
+        fig.axes[0].annotate("C", (1.008, y_pos_fraction),
                              xycoords="figure fraction", color=config["style"]["temp_color"],
                              ha="center", va="bottom", annotation_clip=False)
     if config["enable_plots"]["wind"]:
-        fig.axes[0].annotate("kt", (1.026, y_pos_fraction),
+        fig.axes[0].annotate("kt", (1.024, y_pos_fraction),
                              xycoords="figure fraction", color=config["style"]["wind_color"],
                              ha="center", va="bottom", annotation_clip=False)
 

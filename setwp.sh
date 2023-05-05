@@ -6,4 +6,4 @@ export XDG_RUNTIME_DIR=/run/user/1000
 
 python meteogram.py
 pcmanfm --desktop
-pcmanfm -w output.png
+pcmanfm --wallpaper-mode=stretch -w output.png
