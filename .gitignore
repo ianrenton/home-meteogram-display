@@ -2,3 +2,4 @@
 /config.yml
 /.cache
 /output.png
+/__pycache__

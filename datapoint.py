@@ -108,4 +108,4 @@ class DataPoint:
     def is_frosty(self, config):
         # Storminess takes precedence so return false if this datapoint is stormy
         return self.air_temp_C and self.air_temp_C <= config["frost_storm_warning"]["frost_temp"] \
-            and not self.is_frosty(config)
+            and not self.is_stormy(config)

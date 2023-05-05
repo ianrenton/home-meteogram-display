@@ -13,3 +13,8 @@ WEATHER_ICON_LOOKUP = ["weather-clear-night.png", "weather-clear.png", "weather-
 
 # Datetime format string used in the API
 MET_OFFICE_DATE_TIME_FORMAT_STRING = "%Y-%m-%dT%H:%MZ"
+
+# Dots per inch used to render Matplotlib figures (which deal in inches) to the pixel size
+# we actually want. Pretty arbitrary as we will be using this figure to convert from the pixel
+# size we want to inches when creating the plot, then back again to write it to an image file.
+DPI = 100.0

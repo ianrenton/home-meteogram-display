@@ -1,183 +1,251 @@
 # Plotting functions for use with Home Meteogram Display Script
+import matplotlib.ticker
+import matplotlib.transforms
+import numpy
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import PIL.Image
-from plotly import graph_objects as go
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+from scipy.interpolate import make_interp_spline
 
-from defines import WEATHER_ICON_LOOKUP
+from defines import WEATHER_ICON_LOOKUP, DPI
 from functions_condition_bars import count_overlapping_bars
 from functions_weather import get_date_times, get_feels_likes, get_temperatures, get_precip_probs, get_wind_speeds, \
     get_wind_gust_speeds, get_humidities
 
 
-# Creates the required traces for the plot
-def create_traces(forecast, config):
-    date_times = get_date_times(forecast)
-    # noinspection PyTypeChecker
-    temp_trace = go.Scatter(x=date_times,
-                            y=(get_feels_likes(forecast) if config["use_feels_like_temp"] else get_temperatures(
-                                forecast)),
-                            name="Temperature",
-                            yaxis="y1",
-                            line_shape='spline',
-                            marker=dict(color=config["style"]["temp_color"]),
-                            line=dict(color=config["style"]["temp_color"], width=4))
-    # noinspection PyTypeChecker
-    precip_trace = go.Scatter(x=date_times,
-                              y=get_precip_probs(forecast),
-                              name="Precipitation Probability",
-                              yaxis="y2",
-                              line_shape='spline',
-                              marker=dict(color=config["style"]["precip_color"]),
-                              line=dict(color=config["style"]["precip_color"], width=4))
-    # noinspection PyTypeChecker
-    wind_trace = go.Scatter(x=date_times,
-                            y=get_wind_speeds(forecast),
-                            name="Wind Speed",
-                            yaxis="y3",
-                            line_shape='spline',
-                            marker=dict(color=config["style"]["wind_color"]),
-                            line=dict(color=config["style"]["wind_color"], width=4))
-    # noinspection PyTypeChecker
-    gust_trace = go.Scatter(x=date_times,
-                            y=get_wind_gust_speeds(forecast),
-                            name="Gust Speed",
-                            yaxis="y3",
-                            line_shape='spline',
-                            marker=dict(color=config["style"]["gust_color"]),
-                            line=dict(color=config["style"]["gust_color"], width=4,
-                                      dash=config["style"]["gust_line_style"]))
-    # noinspection PyTypeChecker
-    humidity_trace = go.Scatter(x=date_times,
-                                y=get_humidities(forecast),
-                                name="Humidity",
-                                yaxis="y4",
-                                line_shape='spline',
-                                marker=dict(color=config["style"]["humidity_color"]),
-                                line=dict(color=config["style"]["humidity_color"], width=4))
-    traces = []
-    if config["enable_plots"]["temp"]:
-        traces.append(temp_trace)
-    if config["enable_plots"]["precip_prob"]:
-        traces.append(precip_trace)
-    if config["enable_plots"]["wind"]:
-        traces.append(wind_trace)
-    if config["enable_plots"]["gust"]:
-        traces.append(gust_trace)
-    if config["enable_plots"]["humidity"]:
-        traces.append(humidity_trace)
-    return traces
+# Utility method to get how wide the plot area should be, as a fraction of the overall figure image.
+# It will be less than 1 to allow space for axis labels on the right.
+def get_plot_width_fraction(config):
+    return 0.97 if config["enable_plots"]["wind"] else 0.99
+
+
+# Gets the horizontal size, in points, spanned by one second of time on the chart. Used for positioning
+# and sizing condition & event bars. Will be a very small number.
+def get_one_second_point_size(config, first_time, last_time):
+    total_width_points = config["plot_size"]["width"] / DPI * 72
+    plot_width_points = total_width_points * get_plot_width_fraction(config)
+    time_span_seconds = (last_time - first_time).total_seconds()
+    return plot_width_points / time_span_seconds
 
 
 # Configure layout
-def configure_layout(fig, config, plot_bottom_y_pos):
-    fig["layout"].update(height=config["plot_size"]["height"],
-                         width=config["plot_size"]["width"],
-                         paper_bgcolor=config["style"]["background_color"],
-                         plot_bgcolor=config["style"]["background_color"],
-                         showlegend=False,
-                         margin=dict(l=0, r=5, t=0, b=10),
-                         xaxis=dict(domain=[0, 0.97],
-                                    visible=False, showgrid=False, zeroline=False),
-                         yaxis1=dict(domain=[plot_bottom_y_pos, 1.0], side="right", anchor="free", position=0.98,
-                                     range=[config["scale"]["min_temp"], config["scale"]["max_temp"]],
-                                     tickfont=dict(color=config["style"]["temp_color"], size=16),
-                                     showgrid=False, zeroline=False),
-                         yaxis2=dict(domain=[plot_bottom_y_pos, 1.0], side="right", anchor="free", position=0.98,
-                                     range=[0.0, 100.0],
-                                     tickfont=dict(color=config["style"]["precip_color"], size=16),
-                                     showgrid=False, zeroline=False, showticklabels=False, overlaying="y"),
-                         yaxis3=dict(domain=[plot_bottom_y_pos, 1.0], side="right", anchor="free", position=1.00,
-                                     range=[0.0, config["scale"]["max_wind_speed"]],
-                                     tickfont=dict(color=config["style"]["wind_color"], size=16),
-                                     showgrid=False, zeroline=False, overlaying="y"),
-                         yaxis4=dict(domain=[plot_bottom_y_pos, 1.0], side="right", anchor="free", position=1.00,
-                                     range=[0.0, 100.0],
-                                     tickfont=dict(color=config["style"]["humidity_color"], size=16),
-                                     showgrid=False, zeroline=False, showticklabels=False, overlaying="y"))
+def configure_layout(fig, forecast, config, lines_on_lower_subplot):
+    # Set figure dimensions and remove unnecessary space
+    fig.set_figwidth(config["plot_size"]["width"] / DPI)
+    fig.set_figheight(config["plot_size"]["height"] / DPI)
+    fig.tight_layout(pad=0)
+    plt.subplots_adjust(wspace=0, hspace=0)
+
+    # Set background color
+    fig.patch.set_facecolor(config["style"]["background_color"])
+    fig.axes[0].set_facecolor(config["style"]["background_color"])
+    fig.axes[1].set_facecolor(config["style"]["background_color"])
+
+    # Duplicate the default axes on the main subplot, maintaining a common x-axis but new y-axes for each because there
+    # will be different ranges for temperature, wind, precip prob etc.
+    main_subplot_default_axis = fig.axes[0]
+    lower_subplot_default_axis = fig.axes[1]
+    temp_axis = main_subplot_default_axis.twinx()
+    precip_axis = main_subplot_default_axis.twinx()
+    wind_axis = main_subplot_default_axis.twinx()
+    humidity_axis = main_subplot_default_axis.twinx()
+
+    # Configure the new axes
+    temp_axis.margins(x=0.0, y=0.0)
+    temp_axis.set_ylim(config["scale"]["min_temp"], config["scale"]["max_temp"])
+    temp_axis.tick_params(which="both", length=0, colors=config["style"]["temp_color"])
+    temp_axis.patch.set_facecolor(config["style"]["background_color"])
+    temp_axis.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base=10.0))
+    temp_axis.set_visible(config["enable_plots"]["temp"])
+
+    precip_axis.margins(x=0.0, y=0.0)
+    # Set precip prob y-axis limits. Data is 0-100, but we give it 3 either side so that spline curves don't go
+    # outside the plot
+    precip_axis.set_ylim(-3, 103)
+    precip_axis.yaxis.set_ticks([])
+    precip_axis.set_facecolor(config["style"]["background_color"])
+    precip_axis.set_visible(config["enable_plots"]["precip_prob"])
+
+    wind_axis.margins(x=0.0, y=0.0)
+    wind_axis.set_ylim(0, config["scale"]["max_wind_speed"])
+    wind_axis.tick_params(which="both", length=0, colors=config["style"]["wind_color"])
+    wind_axis.set_facecolor(config["style"]["background_color"])
+    wind_axis.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base=10.0))
+    wind_axis_label_offset = matplotlib.transforms.ScaledTranslation(15 / 72, 0, fig.dpi_scale_trans)
+    for label in wind_axis.yaxis.get_majorticklabels():
+        label.set_transform(label.get_transform() + wind_axis_label_offset)
+    wind_axis.set_visible(config["enable_plots"]["wind"])
+
+    humidity_axis.margins(x=0.0, y=0.0)
+    # Set humidity y-axis limits. Data is 0-100, but we give it 3 either side so that spline curves don't go
+    # outside the plot
+    humidity_axis.set_ylim(-3, 103)
+    humidity_axis.yaxis.set_ticks([])
+    humidity_axis.set_facecolor(config["style"]["background_color"])
+    humidity_axis.set_visible(config["enable_plots"]["humidity"])
+
+    # Remove margins and hide the default axis for each subplot, to avoid displaying anything apart from what's
+    # covered above
+    main_subplot_default_axis.margins(x=0.0, y=0.0)
+    main_subplot_default_axis.xaxis.set_ticks([])
+    main_subplot_default_axis.yaxis.set_ticks([])
+    lower_subplot_default_axis.margins(x=0.0, y=0.0)
+    lower_subplot_default_axis.xaxis.set_ticks([])
+    lower_subplot_default_axis.yaxis.set_ticks([])
+
+    # Set default axis for the top subplot to have a y-axis spanning 0 to 1. We don't use this for plotting data, but we
+    # can use knowledge of its range to arrange things like the day names relative to the top
+    main_subplot_default_axis.set_ylim([0, 1])
+
+    # Bottom subplot axis doesn't display any data, so it needs its limits set manually. x-axis has datetimes to match
+    # the top. For convenience, we set its y-axis to be from zero to -(1 - the number of lines of information we want
+    # to display on it); we can therefore use the y-axis to lay out those lines.
+    date_times = numpy.array(list(map(lambda dt: dt.timestamp() * 1000, get_date_times(forecast))))
+    lower_subplot_default_axis.set_xlim([date_times[0], date_times[len(date_times) - 1]])
+    lower_subplot_default_axis.set_ylim([-lines_on_lower_subplot, 0])
+
+
+# Creates the required traces for the plot
+def add_traces(fig, forecast, config):
+    # Get the date times of the forecast points, which will be used as the x-axis for all plots.
+    # Interpolate 1000 points to give us a basis for spline calculation
+    date_times = numpy.array(list(map(lambda dt: dt.timestamp() * 1000, get_date_times(forecast))))
+    date_times_interpolated = numpy.linspace(date_times[0], date_times[len(date_times) - 1], 1000)
+
+    # Go through each plot type. If it's enabled, find the appropriate axes, create a spline to
+    # show the data as a curve rather than straight lines, then plot it.
+    # Indices into the axes list start at 2, because we have a default unused axis on both subplots in [0] and [1]
+    if config["enable_plots"]["temp"]:
+        temp_axis = fig.axes[2]
+        temps = numpy.array(get_feels_likes(forecast) if config["use_feels_like_temp"] else get_temperatures(forecast))
+        spline = make_interp_spline(date_times, temps)
+        temp_axis.plot(date_times_interpolated, spline(date_times_interpolated),
+                       color=config["style"]["temp_color"],
+                       linewidth=3)
+
+    if config["enable_plots"]["precip_prob"]:
+        precip_axis = fig.axes[3]
+        precip_probs = numpy.array(get_precip_probs(forecast))
+        spline = make_interp_spline(date_times, precip_probs)
+        precip_axis.plot(date_times_interpolated, spline(date_times_interpolated),
+                         color=config["style"]["precip_color"],
+                         linewidth=3)
+
+    if config["enable_plots"]["wind"]:
+        wind_axis = fig.axes[4]
+        wind_speeds = numpy.array(get_wind_speeds(forecast))
+        spline = make_interp_spline(date_times, wind_speeds)
+        wind_axis.plot(date_times_interpolated, spline(date_times_interpolated),
+                       color=config["style"]["wind_color"],
+                       linewidth=3)
+
+    if config["enable_plots"]["gust"]:
+        wind_axis = fig.axes[4]  # Same axis as wind
+        wind_gust_speeds = numpy.array(get_wind_gust_speeds(forecast))
+        spline = make_interp_spline(date_times, wind_gust_speeds)
+        wind_axis.plot(date_times_interpolated, spline(date_times_interpolated),
+                       color=config["style"]["wind_color"],
+                       linestyle=config["style"]["gust_line_style"],
+                       linewidth=3)
+
+    if config["enable_plots"]["humidity"]:
+        humidity_axis = fig.axes[5]
+        humidities = numpy.array(get_humidities(forecast))
+        spline = make_interp_spline(date_times, humidities)
+        humidity_axis.plot(date_times_interpolated, spline(date_times_interpolated),
+                           color=config["style"]["humidity_color"],
+                           linewidth=3)
 
 
 # Annotate figure with units
-def add_units(fig, config, y_pos):
+def add_units(fig, config, y_pos_fraction):
     if config["enable_plots"]["temp"]:
-        fig.add_annotation(text="C",
-                           xref="paper", yref="paper",
-                           x=0.99 if config["enable_plots"]["wind"] else 1.0, y=y_pos,
-                           font=dict(color=config["style"]["temp_color"], size=16), showarrow=False)
+        fig.axes[0].annotate("C", (1.008, y_pos_fraction),
+                             xycoords="figure fraction", color=config["style"]["temp_color"],
+                             ha="center", va="bottom", annotation_clip=False)
     if config["enable_plots"]["wind"]:
-        fig.add_annotation(text="kt",
-                           xref="paper", yref="paper",
-                           x=1.01, y=y_pos,
-                           font=dict(color=config["style"]["wind_color"], size=16), showarrow=False)
+        fig.axes[0].annotate("kt", (1.024, y_pos_fraction),
+                             xycoords="figure fraction", color=config["style"]["wind_color"],
+                             ha="center", va="bottom", annotation_clip=False)
 
 
 # Annotate figure with daytime blocks
-def add_daytime_regions(fig, config, dates, sun):
+def add_daytime_regions(fig, config, dates, sun, first_time, last_time):
     for day in dates:
-        daytime_start = sun.get_sunrise_time(day).timestamp() * 1000
-        daytime_end = sun.get_sunset_time(day).timestamp() * 1000
-        fig.add_vrect(x0=daytime_start, x1=daytime_end,
-                      fillcolor=config["style"]["daytime_color"],
-                      opacity=config["style"]["daytime_opacity"],
-                      line_width=0,
-                      annotation_text=day.strftime("%A"), annotation_position="inside top",
-                      annotation_font_color=config["style"]["daytime_color"], annotation_font_size=16,
-                      layer="below")
+        start = sun.get_sunrise_time(day)
+        end = sun.get_sunset_time(day)
+        midday_timestamp = (start.timestamp() * 1000 + end.timestamp() * 1000) / 2.0
+        # Ensure the regions don't end up outside the plot area
+        start = max(start, first_time)
+        end = min(end, last_time)
+        fig.axes[0].axvspan(start.timestamp() * 1000, end.timestamp() * 1000,
+                            color=config["style"]["daytime_color"],
+                            alpha=config["style"]["daytime_opacity"])
+        fig.axes[0].annotate(day.strftime("%A"), (midday_timestamp, 0.97),
+                             xycoords="data",
+                             color=config["style"]["daytime_color"],
+                             ha="center", va="top", clip_box=fig.axes[1].clipbox, clip_on=True)
 
 
 # Annotate figure with frost lines
 def add_frost_lines(fig, config):
-    fig.add_hline(y=config["frost_storm_warning"]["frost_temp"],
-                  line_color=config["style"]["frost_color"],
-                  opacity=config["style"]["frost_line_opacity"],
-                  line_width=1, line_dash=config["style"]["frost_line_style"],
-                  layer="below")
-    fig.add_hline(y=0,
-                  line_color=config["style"]["ice_color"],
-                  opacity=config["style"]["frost_line_opacity"],
-                  line_width=2, line_dash=config["style"]["frost_line_style"],
-                  layer="below")
+    fig.axes[2].axhline(y=config["frost_storm_warning"]["frost_temp"],
+                        color=config["style"]["frost_color"],
+                        alpha=config["style"]["frost_line_opacity"],
+                        linewidth=2, linestyle=config["style"]["frost_line_style"])
+    fig.axes[2].axhline(y=0,
+                        color=config["style"]["ice_color"],
+                        alpha=config["style"]["frost_line_opacity"],
+                        linewidth=2, linestyle=config["style"]["frost_line_style"])
 
 
 # Annotate figure with weather icons
-def add_weather_icons(fig, forecast, config, weather_icon_y_pos):
+def add_weather_icons(fig, forecast, config):
     # For each forecast point from the *three hourly* forecast, look up the icon for its weather code, and add it to the
-    # display. We only use the three hourly forecast so that the images are equally spaced.
-    for dp in forecast:
+    # display. We only use the three hourly forecast so that the images are equally spaced, and omit the first and last
+    # to avoid overrunning the edge of the plot.
+    for dp in forecast[1:-1]:
         if dp.contains_three_hourly_data:
             image = PIL.Image.open(config["files"]["weather_icon_folder"] + "/" + WEATHER_ICON_LOOKUP[dp.weather_code])
-            fig.add_layout_image(source=image, x=dp.time, y=weather_icon_y_pos, xref="x",
-                                 yref="paper", xanchor="center", sizex=8000000, sizey=1)
+            imagebox = OffsetImage(image, zoom=0.4)
+            imagebox.image.axes = fig.axes[1]
+            ab = AnnotationBbox(imagebox,
+                                (dp.time.timestamp() * 1000, -0.5), xycoords="data",
+                                frameon=False)
+            fig.axes[1].add_artist(ab)
 
 
 # Annotate figure with condition bars
-def add_condition_bars(fig, config, condition_bars, condition_y0_pos, condition_y1_pos):
+def add_condition_bars(fig, config, condition_bars, show_weather_icons):
     for bar in condition_bars:
-        fig.add_shape(type="rect",
-                      x0=bar["start"].timestamp() * 1000, x1=bar["end"].timestamp() * 1000, xref="x",
-                      y0=condition_y0_pos, y1=condition_y1_pos, yref="paper",
-                      label=dict(text=bar["text"], font=dict(color=bar["color"],
-                                                             size=config["style"]["condition_bars_font_size"])),
-                      fillcolor=bar["color"],
-                      opacity=config["style"]["condition_bars_opacity"],
-                      line_width=0,
-                      layer="below")
+        # Calculate positions on the bottom subplot. y-axis position depends on whether we have weather icons above it
+        # or not
+        y_pos = -2 if show_weather_icons else -1
+        x_pos = bar["start"].timestamp() * 1000
+        y_height = 0.9
+        x_width = (bar["end"].timestamp() - bar["start"].timestamp()) * 1000
+        rect = patches.Rectangle((x_pos, y_pos), x_width, y_height,
+                                 facecolor=bar["color"], alpha=config["style"]["condition_bars_opacity"])
+        fig.axes[1].add_patch(rect)
+        fig.axes[1].text(x_pos + x_width / 2.0, y_pos + y_height / 2.0 - 0.05, bar["text"],
+                         color=bar["color"], ha="center", va="center", clip_box=fig.axes[1].clipbox, clip_on=True)
 
 
 # Annotate figure with calendar event bars
-def add_calendar_events(fig, config, event_bars, events_y0_pos, events_y1_pos, event_lines_required,
-                        max_calendar_event_bar_rows):
+def add_calendar_events(fig, config, event_bars, show_weather_icons, show_condition_bars):
     already_added_event_bars = []
     for bar in event_bars:
+        # Calculate positions on the bottom subplot. y-axis position depends on whether we have weather icons and/or
+        # condition bars above it, and if multiple event rows are being used, which row it is on.
         add_to_row = count_overlapping_bars(already_added_event_bars, bar)
-        if add_to_row < max_calendar_event_bar_rows:
-            y0_pos = events_y0_pos + 0.12 * (event_lines_required - add_to_row - 1)
-            y1_pos = events_y1_pos + 0.12 * (event_lines_required - add_to_row - 1)
-            fig.add_shape(type="rect",
-                          x0=bar["start"].timestamp() * 1000, x1=bar["end"].timestamp() * 1000, xref="x",
-                          y0=y0_pos, y1=y1_pos, yref="paper",
-                          label=dict(text=bar["text"],
-                                     font=dict(color=bar["color"],
-                                               size=config["style"]["calendar_event_bars_font_size"])),
-                          fillcolor=bar["color"], opacity=config["style"]["calendar_event_bars_opacity"],
-                          line_width=0,
-                          layer="below")
+        y_pos = -1 - (1 if show_weather_icons else 0) - (1 if show_condition_bars else 0) - add_to_row
+        x_pos = bar["start"].timestamp() * 1000
+        y_height = 0.9
+        x_width = (bar["end"].timestamp() - bar["start"].timestamp()) * 1000
+        rect = patches.Rectangle((x_pos, y_pos), x_width, y_height,
+                                 facecolor=bar["color"], alpha=config["style"]["calendar_event_bars_opacity"])
+        fig.axes[1].add_patch(rect)
+        fig.axes[1].text(x_pos + x_width / 2.0, y_pos + y_height / 2.0 - 0.05, bar["text"],
+                         color=bar["color"], ha="center", va="center", clip_box=fig.axes[1].clipbox, clip_on=True)
         already_added_event_bars.append(bar)

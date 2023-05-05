@@ -5,18 +5,20 @@
 
 from datetime import datetime, timedelta
 
-import plotly.subplots
-import suntime
 import pytz
+import suntime
+import matplotlib
+import matplotlib.pyplot as plt
 
 from functions_calendar import generate_event_bars
 from functions_condition_bars import count_max_bars_at_time, generate_frost_condition_bars, \
     generate_storm_condition_bars, generate_laundry_day_condition_bars
 from functions_config import load_config
-from functions_plotting import create_traces, add_units, add_daytime_regions, add_frost_lines, configure_layout, \
+from functions_plotting import add_traces, add_units, add_daytime_regions, add_frost_lines, configure_layout, \
     add_weather_icons, add_condition_bars, add_calendar_events
 from functions_weather import get_live_or_cached_weather_data, print_weather_metadata, build_forecast_datapoint_list, \
     get_temperatures
+from defines import DPI
 
 # Load config
 print("Loading configuration...")
@@ -96,65 +98,61 @@ if not len(condition_bars):
 if not len(event_bars):
     show_calendar_events = False
 
-# Calculate the vertical alignment of various components based on what is enabled
-plot_bottom_y_pos = 0
-weather_icon_y_pos = 0.07
-condition_y0_pos = -0.03
-condition_y1_pos = 0.07
-events_y0_pos = -0.03
-events_y1_pos = 0.07
-if show_weather_icons:
-    plot_bottom_y_pos += 0.08
-if show_condition_bars:
-    plot_bottom_y_pos += 0.12
-    weather_icon_y_pos += 0.12
-if show_calendar_events:
-    plot_bottom_y_pos += 0.12 * event_lines_required
-    weather_icon_y_pos += 0.12 * event_lines_required
-    condition_y0_pos += 0.12 * event_lines_required
-    condition_y1_pos += 0.12 * event_lines_required
-
-# Create plot traces & assemble figure
-print("Plotting data...")
-fig = plotly.subplots.make_subplots()
-fig.add_traces(create_traces(forecast, config))
+# Work out how what fraction of the display the main subplot should take up, expressed as a ratio compared to the
+# lower subplot, and how many lines of information we need to display on it (weather icons + condition bars + event
+# bars)
+total_height_points = config["plot_size"]["height"] / DPI * 72
+points_space_required_for_lower_subplot = (20 if show_weather_icons else 0) + (20 if show_condition_bars else 0)\
+                                          + (20 * event_lines_required if show_calendar_events else 0)
+lower_subplot_height_fraction_of_total = points_space_required_for_lower_subplot / total_height_points
+main_subplot_height_fraction_of_total = 1 - lower_subplot_height_fraction_of_total
+lines_on_lower_subplot = (1 if show_calendar_events else 0) + (1 if show_condition_bars else 0) \
+                         + (event_lines_required if show_calendar_events else 0)
 
 # Configure layout
 print("Configuring layout...")
-configure_layout(fig, config, plot_bottom_y_pos)
+fig, ax = plt.subplots(2, 1, gridspec_kw={'height_ratios': [main_subplot_height_fraction_of_total,
+                                                            lower_subplot_height_fraction_of_total]})
+matplotlib.rcParams.update({'font.size': config["style"]["font_size"]})
+configure_layout(fig, forecast, config, lines_on_lower_subplot)
+
+# Create plot traces & assemble figure
+print("Plotting data...")
+add_traces(fig, forecast, config)
 
 if show_weather_icons:
     print("Adding weather icons...")
-    add_weather_icons(fig, forecast, config, weather_icon_y_pos)
+    add_weather_icons(fig, forecast, config)
 
 if show_condition_bars:
     print("Adding condition bars...")
-    add_condition_bars(fig, config, condition_bars, condition_y0_pos, condition_y1_pos)
+    add_condition_bars(fig, config, condition_bars, show_weather_icons)
 
 if show_calendar_events:
     print("Adding calendar events...")
-    add_calendar_events(fig, config, event_bars, events_y0_pos, events_y1_pos, event_lines_required,
-                        max_calendar_event_bar_rows)
+    add_calendar_events(fig, config, event_bars, show_weather_icons, show_condition_bars)
 
 if min(get_temperatures(forecast)) <= config["frost_storm_warning"]["frost_temp"]:
     print("Adding frost lines...")
     add_frost_lines(fig, config)
 
 print("Adding daytime regions...")
-add_daytime_regions(fig, config, dates, sun)
+add_daytime_regions(fig, config, dates, sun, first_time, last_time)
 
 print("Adding units...")
-add_units(fig, config, condition_y1_pos)
+units_points_below_axis = 25
+units_y_pos_fraction = 1 - main_subplot_height_fraction_of_total - (units_points_below_axis / total_height_points)
+add_units(fig, config, units_y_pos_fraction)
 
 print("Adding \"now\" line...")
-fig.add_vline(x=pytz.utc.localize(datetime.utcnow()).timestamp() * 1000, line_color=config["style"]["now_line_color"])
+fig.axes[0].axvline(x=pytz.utc.localize(datetime.utcnow()).timestamp() * 1000, color=config["style"]["now_line_color"],
+                    linewidth=2)
 
-# We may have drawn a daytime block or laundry day block before the start of data, or a laundry day block past the end
-# of the data, so go back and update the x-axis range to constrain it to the datetimes of the first and last data points
-fig["layout"].update(xaxis=dict(range=[first_time, last_time]))
+# Re-crop the plots to remove extra whitespace
+plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
 
 # Write to disk
 print("Writing output file...")
-fig.write_image(config["files"]["output_file_name"])
+plt.savefig(config["files"]["output_file_name"], dpi=DPI, bbox_inches="tight", pad_inches=0)
 
 print("Done.")

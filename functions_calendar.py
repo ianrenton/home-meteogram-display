@@ -19,12 +19,9 @@ def generate_event_bars(config, sun, first_time, last_time):
                 start = sun.get_sunrise_time(event.start.date())
                 end = sun.get_sunset_time((event.end - timedelta(hours=1)).date())
             # Constrain events to the scope of the meteogram, so that long-running events aren't so wide that their
-            # centrally-positioned text is off-screen. We actually allow a few more hours either way so that it's
-            # obvious it goes off the end, but not the full event range.
-            if start < first_time:
-                start = first_time - timedelta(hours=3)
-            if end > last_time:
-                end = last_time + timedelta(hours=3)
+            # centrally-positioned text is off-screen.
+            start = max(start, first_time)
+            end = min(end, last_time)
             # Build up the list
             event_bars.append(dict(text=event.summary, start=start, end=end, color=calendar["color"]))
     return event_bars
