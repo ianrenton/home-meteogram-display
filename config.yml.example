@@ -44,7 +44,7 @@ use_feels_like_temp: False
 # Precipitation probability and humidity are always 0-100% over the scale and cannot be altered.
 scale:
   # Temperature at the top of the scale (C)
-  max_temp: 30
+  max_temp: 35
   # Temperature at the bottom of the scale (C)
   min_temp: -5
   # Wind speed at the top of the scale (knots)
@@ -99,12 +99,11 @@ style:
   storm_color: "blueviolet"
   laundry_day_color: "yellow"
   condition_bars_opacity: 0.2
-  condition_bars_font_size: 10
   calendar_event_bars_opacity: 0.2
-  calendar_event_bars_font_size: 10
   max_calendar_event_bar_rows: 3
   frost_line_style: "dotted"
   frost_line_opacity: 1.0
+  font_size: 12
   background_color: "black"
 
 # File management parameters

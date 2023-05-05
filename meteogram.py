@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 import pytz
 import suntime
+import matplotlib
 import matplotlib.pyplot as plt
 
 from functions_calendar import generate_event_bars
@@ -97,30 +98,23 @@ if not len(condition_bars):
 if not len(event_bars):
     show_calendar_events = False
 
-# Calculate the vertical alignment of various components below the plot based on what is enabled
-points_space_to_leave_below_axis = 0
-weather_icon_points_below_axis = 10
-condition_bar_points_below_axis = 10
-event_bar_points_below_axis = 10
-units_points_below_axis = 25
-if show_calendar_events:
-    points_space_to_leave_below_axis += 20 * event_lines_required
-if show_condition_bars:
-    event_bar_points_below_axis += 20
-    points_space_to_leave_below_axis += 20
-if show_weather_icons:
-    condition_bar_points_below_axis += 20
-    event_bar_points_below_axis += 20
-    points_space_to_leave_below_axis += 20
-
-# Work out how tall the plot should be, as a fraction, to accomodate the other components.
+# Work out how what fraction of the display the main subplot should take up, expressed as a ratio compared to the
+# lower subplot, and how many lines of information we need to display on it (weather icons + condition bars + event
+# bars)
 total_height_points = config["plot_size"]["height"] / DPI * 72
-plot_height_fraction = 1 - points_space_to_leave_below_axis / total_height_points
+points_space_required_for_lower_subplot = (20 if show_weather_icons else 0) + (20 if show_condition_bars else 0)\
+                                          + (20 * event_lines_required if show_calendar_events else 0)
+lower_subplot_height_fraction_of_total = points_space_required_for_lower_subplot / total_height_points
+main_subplot_height_fraction_of_total = 1 - lower_subplot_height_fraction_of_total
+lines_on_lower_subplot = (1 if show_calendar_events else 0) + (1 if show_condition_bars else 0) \
+                         + (event_lines_required if show_calendar_events else 0)
 
 # Configure layout
 print("Configuring layout...")
-fig = plt.figure()
-configure_layout(fig, config, plot_height_fraction)
+fig, ax = plt.subplots(2, 1, gridspec_kw={'height_ratios': [main_subplot_height_fraction_of_total,
+                                                            lower_subplot_height_fraction_of_total]})
+matplotlib.rcParams.update({'font.size': config["style"]["font_size"]})
+configure_layout(fig, forecast, config, lines_on_lower_subplot)
 
 # Create plot traces & assemble figure
 print("Plotting data...")
@@ -128,31 +122,34 @@ add_traces(fig, forecast, config)
 
 if show_weather_icons:
     print("Adding weather icons...")
-    add_weather_icons(fig, forecast, config, weather_icon_points_below_axis)
+    add_weather_icons(fig, forecast, config)
 
 if show_condition_bars:
     print("Adding condition bars...")
-    add_condition_bars(fig, config, condition_bars, first_time, last_time, condition_bar_points_below_axis)
+    add_condition_bars(fig, config, condition_bars, show_weather_icons)
 
-# todo
-# if show_calendar_events:
-#     print("Adding calendar events...")
-#     add_calendar_events(fig, config, event_bars, events_y0_pos, events_y1_pos, event_lines_required,
-#                         max_calendar_event_bar_rows)
+if show_calendar_events:
+    print("Adding calendar events...")
+    add_calendar_events(fig, config, event_bars, show_weather_icons, show_condition_bars)
 
 if min(get_temperatures(forecast)) <= config["frost_storm_warning"]["frost_temp"]:
     print("Adding frost lines...")
     add_frost_lines(fig, config)
 
 print("Adding daytime regions...")
-add_daytime_regions(config, dates, sun, first_time, last_time)
+add_daytime_regions(fig, config, dates, sun, first_time, last_time)
 
 print("Adding units...")
-units_y_pos_fraction = 1 - plot_height_fraction - (units_points_below_axis / total_height_points)
-add_units(config, units_y_pos_fraction)
+units_points_below_axis = 25
+units_y_pos_fraction = 1 - main_subplot_height_fraction_of_total - (units_points_below_axis / total_height_points)
+add_units(fig, config, units_y_pos_fraction)
 
 print("Adding \"now\" line...")
-plt.axvline(x=pytz.utc.localize(datetime.utcnow()).timestamp() * 1000, color=config["style"]["now_line_color"], linewidth = 2)
+fig.axes[0].axvline(x=pytz.utc.localize(datetime.utcnow()).timestamp() * 1000, color=config["style"]["now_line_color"],
+                    linewidth=2)
+
+# Re-crop the plots to remove extra whitespace
+plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
 
 # Write to disk
 print("Writing output file...")

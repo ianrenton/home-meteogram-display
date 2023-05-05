@@ -32,7 +32,7 @@ def cluster_and_get_start_end_times(indices, all_date_times):
         end_time_step = all_date_times[cl[len(cl) - 1]] - all_date_times[cl[len(cl) - 1] + 1] if (
                 cl[len(cl) - 1] < len(all_date_times) - 1) else 0
         end_time = all_date_times[cl[len(cl) - 1]] + (end_time_step / 2.0)
-        output.append(dict(start=start_time, end=end_time))
+        output.append({"start": start_time, "end": end_time})
     return output
 
 
@@ -87,7 +87,7 @@ def get_frosty_blocks(forecast, config):
 def generate_frost_condition_bars(forecast, config):
     condition_bars = []
     for c in get_frosty_blocks(forecast, config):
-        condition_bars.append(dict(text="Frost", start=c.start, end=c.end,
+        condition_bars.append(dict(text="Frost", start=c["start"], end=c["end"],
                                    color=config["style"]["frost_color"]))
     return condition_bars
 
@@ -96,7 +96,7 @@ def generate_frost_condition_bars(forecast, config):
 def generate_storm_condition_bars(forecast, config):
     condition_bars = []
     for c in get_stormy_blocks(forecast, config):
-        condition_bars.append(dict(text="Storm", start=c.start, end=c.end,
+        condition_bars.append(dict(text="Storm", start=c["start"], end=c["end"],
                                    color=config["style"]["storm_color"]))
     return condition_bars
 
