@@ -27,15 +27,19 @@ If you would like to use this script for yourself, follow these steps:
 2. Clone the repository from Github
 3. Install the required dependencies by running `pip install -r requirements.txt`
 
-*(Running on an old Raspberry Pi and seeing an error about missing compilers when installing `scipy`? It's easiest to install it using the package manager, e.g. `sudo apt install python3-scipy`. Then re-run the command above.)*
+*(Running on an old Raspberry Pi and seeing an error about missing compilers when installing `scipy`, or waiting a very long time for it to install `numpy`? It's easiest to install these using the package manager, e.g. `sudo apt install python3-scipy python3-numpy`, rather than letting `pip` try to build them from source. Once complete, re-run the command above.)*
 
 4. Copy or rename the `config.yml.example` file to `config.yml`
 5. Edit `config.yml` in your preferred editor. You will need:
     * A Met Office DataHub API client key and secret. To get these, you will need to create an account on the [Met Office DataHub site](https://metoffice.apiconnect.ibmcloud.com/metoffice/production/) and subscribe to the Site Specific forecast service. This is free for 360 API calls per day.
     * Your approximate position, in latitude and longitude. You can look this up using Google Maps or other online services.
-6. Make any other adjustments to parameters in `.env` based on the climate of your location and your personal preferences, then save it.
+6. Make any other adjustments to parameters in `config.yml` based on the climate of your location and your personal preferences, then save it.
 7. Run `python meteogram.py`
 8. View the meteogram, which will be saved as `output.png`.
+
+## Setting the Desktop Wallpaper
+
+The included `setwp.sh` script can be used to regenerate the meteogram image, and set it as the desktop wallpaper using `pcmanfm`, the Raspberry Pi OS default desktop renderer. You can run this manually (after making it executable with `chmod +x setwp.sh`), or add it as a cron job.
 
 ## Plotly vs Matplotlib
 

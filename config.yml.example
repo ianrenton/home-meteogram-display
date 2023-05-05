@@ -103,7 +103,7 @@ style:
   max_calendar_event_bar_rows: 3
   frost_line_style: "dotted"
   frost_line_opacity: 1.0
-  font_size: 12
+  font_size: 11
   background_color: "black"
 
 # File management parameters
