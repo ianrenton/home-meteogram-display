@@ -116,6 +116,12 @@ def get_precip_probs(forecast):
     return list(map(lambda dp: dp.probability_of_precipitation, forecast))
 
 
+# Get a precipitation amount series to plot on the chart. This provides y-axis values; corresponding
+# x-axis values can be retrieved by calling get_date_times
+def get_precip_amounts(forecast):
+    return list(map(lambda dp: dp.total_precipitation_amount_mm, forecast))
+
+
 # Get a wind speed series to plot on the chart. This provides y-axis values; corresponding
 # x-axis values can be retrieved by calling get_date_times
 def get_wind_speeds(forecast):

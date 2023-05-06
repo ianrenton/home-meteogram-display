@@ -11,7 +11,7 @@ from scipy.interpolate import make_interp_spline
 from defines import WEATHER_ICON_LOOKUP, DPI
 from functions_condition_bars import count_overlapping_bars
 from functions_weather import get_date_times, get_feels_likes, get_temperatures, get_precip_probs, get_wind_speeds, \
-    get_wind_gust_speeds, get_humidities
+    get_wind_gust_speeds, get_humidities, get_precip_amounts
 
 
 # Utility method to get how wide the plot area should be, as a fraction of the overall figure image.
@@ -47,7 +47,8 @@ def configure_layout(fig, forecast, config, lines_on_lower_subplot):
     main_subplot_default_axis = fig.axes[0]
     lower_subplot_default_axis = fig.axes[1]
     temp_axis = main_subplot_default_axis.twinx()
-    precip_axis = main_subplot_default_axis.twinx()
+    precip_prob_axis = main_subplot_default_axis.twinx()
+    precip_amount_axis = main_subplot_default_axis.twinx()
     wind_axis = main_subplot_default_axis.twinx()
     humidity_axis = main_subplot_default_axis.twinx()
 
@@ -59,13 +60,19 @@ def configure_layout(fig, forecast, config, lines_on_lower_subplot):
     temp_axis.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base=10.0))
     temp_axis.set_visible(config["enable_plots"]["temp"])
 
-    precip_axis.margins(x=0.0, y=0.0)
+    precip_prob_axis.margins(x=0.0, y=0.0)
     # Set precip prob y-axis limits. Data is 0-100, but we give it 3 either side so that spline curves don't go
     # outside the plot
-    precip_axis.set_ylim(-3, 103)
-    precip_axis.yaxis.set_ticks([])
-    precip_axis.set_facecolor(config["style"]["background_color"])
-    precip_axis.set_visible(config["enable_plots"]["precip_prob"])
+    precip_prob_axis.set_ylim(-3, 103)
+    precip_prob_axis.yaxis.set_ticks([])
+    precip_prob_axis.set_facecolor(config["style"]["background_color"])
+    precip_prob_axis.set_visible(config["enable_plots"]["precip_prob"])
+
+    precip_amount_axis.margins(x=0.0, y=0.0)
+    precip_amount_axis.set_ylim(0, 10)
+    precip_amount_axis.yaxis.set_ticks([])
+    precip_amount_axis.set_facecolor(config["style"]["background_color"])
+    precip_amount_axis.set_visible(config["enable_plots"]["precip_amount"])
 
     wind_axis.margins(x=0.0, y=0.0)
     wind_axis.set_ylim(0, config["scale"]["max_wind_speed"])
@@ -125,15 +132,24 @@ def add_traces(fig, forecast, config):
                        linewidth=3)
 
     if config["enable_plots"]["precip_prob"]:
-        precip_axis = fig.axes[3]
+        precip_prob_axis = fig.axes[3]
         precip_probs = numpy.array(get_precip_probs(forecast))
         spline = make_interp_spline(date_times, precip_probs)
-        precip_axis.plot(date_times_interpolated, spline(date_times_interpolated),
-                         color=config["style"]["precip_color"],
-                         linewidth=3)
+        precip_prob_axis.plot(date_times_interpolated, spline(date_times_interpolated),
+                              color=config["style"]["precip_prob_color"],
+                              linewidth=3)
+
+    if config["enable_plots"]["precip_amount"]:
+        precip_amount_axis = fig.axes[4]
+        precip_amounts = get_precip_amounts(forecast)
+        # Calculate the widths of the bars, some will be an hour but further along the forecast they will be three hours
+        widths = list(map(lambda dp: (1 if dp.contains_hourly_data else 3) * 3600000, forecast))
+        # Ignore the first and last points to make sure the end widths don't exceed the limits of the plot
+        precip_amount_axis.bar(date_times[1:-1], precip_amounts[1:-1], width=widths[1:-1], bottom=0,
+                               color=config["style"]["precip_amount_color"])
 
     if config["enable_plots"]["wind"]:
-        wind_axis = fig.axes[4]
+        wind_axis = fig.axes[5]
         wind_speeds = numpy.array(get_wind_speeds(forecast))
         spline = make_interp_spline(date_times, wind_speeds)
         wind_axis.plot(date_times_interpolated, spline(date_times_interpolated),
@@ -141,7 +157,7 @@ def add_traces(fig, forecast, config):
                        linewidth=3)
 
     if config["enable_plots"]["gust"]:
-        wind_axis = fig.axes[4]  # Same axis as wind
+        wind_axis = fig.axes[5]  # Same axis as wind
         wind_gust_speeds = numpy.array(get_wind_gust_speeds(forecast))
         spline = make_interp_spline(date_times, wind_gust_speeds)
         wind_axis.plot(date_times_interpolated, spline(date_times_interpolated),
@@ -150,7 +166,7 @@ def add_traces(fig, forecast, config):
                        linewidth=3)
 
     if config["enable_plots"]["humidity"]:
-        humidity_axis = fig.axes[5]
+        humidity_axis = fig.axes[6]
         humidities = numpy.array(get_humidities(forecast))
         spline = make_interp_spline(date_times, humidities)
         humidity_axis.plot(date_times_interpolated, spline(date_times_interpolated),

@@ -29,6 +29,7 @@ enable_plots:
   wind: true
   gust: true
   precip_prob: true
+  precip_amount: true
   humidity: false
 
 # Enable/disable features.
@@ -85,7 +86,8 @@ calendars:
 # Meteogram and general plot colour and style parameters
 style:
   temp_color: "firebrick"
-  precip_color: "dodgerblue"
+  precip_prob_color: "dodgerblue"
+  precip_amount_color: "#104b85"
   wind_color: "forestgreen"
   gust_color: "#004400"
   gust_line_style: "dashed"

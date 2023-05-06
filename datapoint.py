@@ -81,6 +81,9 @@ class DataPoint:
             self.precipitation_rate_mm_per_hour = data["precipitationRate"]
         if "totalPrecipAmount" in data:
             self.total_precipitation_amount_mm = data["totalPrecipAmount"]
+        else:
+            # Some strange data points don't have this, if not present assume zero
+            self.total_precipitation_amount_mm = 0.0
         if "totalSnowAmount" in data:
             self.total_snow_amount_mm = data["totalSnowAmount"]
         if "probOfPrecipitation" in data:
