@@ -50,6 +50,9 @@ scale:
   min_temp: -5
   # Wind speed at the top of the scale (knots)
   max_wind_speed: 45
+  # Precipitation amount at the top of the scale (mm). Best to make this a much higher level than you ever expect
+  # to see, so that normal rainfall is shown as bars largely *below* the other plots.
+  max_precip_amount: 10
 
 # Frost/storm warning calculation parameters.
 frost_storm_warning:

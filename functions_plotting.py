@@ -69,7 +69,7 @@ def configure_layout(fig, forecast, config, lines_on_lower_subplot):
     precip_prob_axis.set_visible(config["enable_plots"]["precip_prob"])
 
     precip_amount_axis.margins(x=0.0, y=0.0)
-    precip_amount_axis.set_ylim(0, 10)
+    precip_amount_axis.set_ylim(0, config["scale"]["max_precip_amount"])
     precip_amount_axis.yaxis.set_ticks([])
     precip_amount_axis.set_facecolor(config["style"]["background_color"])
     precip_amount_axis.set_visible(config["enable_plots"]["precip_amount"])

@@ -7,11 +7,12 @@ You can read about the background to this project in [this blog post](https://ia
 
 ## Features
 
-* The red line shows temperature in Celsius between defined limits. Low temperatures in the forecast will cause frost and ice indicators to appear on the chart. You can use the "feels like" or real temperatures.
-* The green line shows wind speed in miles per hour, between zero and a defined limit.
-* The blue line shows precipitation probability from 0 to 100%.
-* The purple line shows humidity from 0 to 100%.
-* The vertical yellow bands show hours of daylight, named for their day of the week, and the solid yellow vertical line shows the current time when the meteogram was generated.
+* A red line shows temperature in Celsius between defined limits. Low temperatures in the forecast will cause frost and ice indicators to appear on the chart. You can use the "feels like" or real temperatures.
+* A green line shows wind speed in miles per hour, between zero and a defined limit. The higher dashed green line shows gust speed.
+* A blue line shows precipitation probability from 0 to 100%.
+* Blue bars show precipitation amount, between zero and a defined limit.
+* A purple line shows humidity from 0 to 100%.
+* Vertical yellow bands show hours of daylight, named for their day of the week, and the solid yellow vertical line shows the current time when the meteogram was generated.
 * Weather symbols across the bottom of the meteogram are based on the forecasted conditions.
 * Bars across the bottom of the display warn of frosts and storms, and will also display good days for drying laundry outside.
 * Additional bars aross the bottom of the display can be used to display calendar events.
