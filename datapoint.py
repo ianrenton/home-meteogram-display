@@ -102,13 +102,36 @@ class DataPoint:
             self.probability_of_thunder = data["probOfSferics"]
 
     # Returns whether this data point is considered "stormy" based on config
-    def is_stormy(self, config):
+    def is_stormy(self, config, forecast):
+        return self.is_stormy_due_to_wind_and_rain(config) or self.is_stormy_due_to_thunder(config, forecast)
+
+    # Returns whether this data point is considered "stormy" based on configured wind speed and probability of
+    # precipitation limits
+    def is_stormy_due_to_wind_and_rain(self, config):
         return self.probability_of_precipitation and self.wind_gust_knots and \
             self.probability_of_precipitation >= config["frost_storm_warning"]["storm_precip_prob"] \
             and self.wind_gust_knots >= config["frost_storm_warning"]["storm_gust_speed"]
 
+    # Returns whether this data point is considered "stormy" based on configured probability of thunder.
+    # The whole forecast has to be provided for reference, because not all data points have a probability of thunder -
+    # only the three-hour ones. So if we don't have that data on this data point, we search the forecast for the closest
+    # point that does.
+    def is_stormy_due_to_thunder(self, config, forecast):
+        relative_search_indices = [0, 1, -1, 2, -2]
+        this_datapoint_index = forecast.index(self)
+        for rsi in relative_search_indices:
+            check_index = this_datapoint_index + rsi
+            if 0 <= check_index < len(forecast):
+                check_dp = forecast[check_index]
+                if check_dp.probability_of_thunder:
+                    # Found data closest to our data point, so return whether it's thundery enough or not
+                    return check_dp.probability_of_thunder >= config["frost_storm_warning"]["storm_thunder_prob"]
+
+        # Couldn't find any data, return false
+        return False
+
     # Returns whether this data point is considered "frosty" based on config
-    def is_frosty(self, config):
+    def is_frosty(self, config, forecast):
         # Storminess takes precedence so return false if this datapoint is stormy
         return self.air_temp_C and self.air_temp_C <= config["frost_storm_warning"]["frost_temp"] \
-            and not self.is_stormy(config)
+            and not self.is_stormy(config, forecast)

@@ -58,10 +58,11 @@ scale:
 frost_storm_warning:
   # Frost warning if temperature falls below this (C)
   frost_temp: 4
-  # Storm warning if wind gust speed is above this (mph)
+  # Storm warning if wind gust speed (mph) *and* precipitation probability (%) exceed these limits simultaneously
   storm_gust_speed: 30
-  # Storm warning if precipitation probability is above this (%)
   storm_precip_prob: 30
+  # Also a storm warning if thunder probability (%) exceeds this limit
+  storm_thunder_prob: 30
 
 # Laundry day calculation parameters.
 laundry_day:

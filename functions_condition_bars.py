@@ -72,14 +72,14 @@ def count_max_bars_at_time(bars):
 # Get a list of datetime blocks that are considered stormy. A list will be returned where each
 # entry is a dict with "start" and "end" datetimes provided.
 def get_stormy_blocks(forecast, config):
-    stormy_indices = [i for i in range(len(forecast)) if forecast[i].is_stormy(config)]
+    stormy_indices = [i for i in range(len(forecast)) if forecast[i].is_stormy(config, forecast)]
     return cluster_and_get_start_end_times(stormy_indices, get_date_times(forecast))
 
 
 # Get a list of datetime blocks that are considered frosty. A list will be returned where each
 # entry is a dict with "start" and "end" datetimes provided.
 def get_frosty_blocks(forecast, config):
-    frosty_indices = [i for i in range(len(forecast)) if forecast[i].is_frosty(config)]
+    frosty_indices = [i for i in range(len(forecast)) if forecast[i].is_frosty(config, forecast)]
     return cluster_and_get_start_end_times(frosty_indices, get_date_times(forecast))
 
 
