@@ -122,7 +122,17 @@ def add_traces(fig, forecast, config):
 
     # Go through each plot type. If it's enabled, find the appropriate axes, create a spline to
     # show the data as a curve rather than straight lines, then plot it.
-    # Indices into the axes list start at 2, because we have a default unused axis on both subplots in [0] and [1]
+    # Indices into the axes list start at 2, because we have a default unused axis on both subplots in [0] and [1].
+    # Start with precipitation amount (the bar graph) so that everything else renders on top.
+    if config["enable_plots"]["precip_amount"]:
+        precip_amount_axis = fig.axes[4]
+        precip_amounts = get_precip_amounts(forecast)
+        # Calculate the widths of the bars, some will be an hour but further along the forecast they will be three hours
+        widths = list(map(lambda dp: (1 if dp.contains_hourly_data else 3) * 3600000, forecast))
+        # Ignore the first and last points to make sure the end widths don't exceed the limits of the plot
+        precip_amount_axis.bar(date_times[1:-1], precip_amounts[1:-1], width=widths[1:-1], bottom=0,
+                               color=config["style"]["precip_amount_color"])
+
     if config["enable_plots"]["temp"]:
         temp_axis = fig.axes[2]
         temps = numpy.array(get_feels_likes(forecast) if config["use_feels_like_temp"] else get_temperatures(forecast))
@@ -138,15 +148,6 @@ def add_traces(fig, forecast, config):
         precip_prob_axis.plot(date_times_interpolated, spline(date_times_interpolated),
                               color=config["style"]["precip_prob_color"],
                               linewidth=3)
-
-    if config["enable_plots"]["precip_amount"]:
-        precip_amount_axis = fig.axes[4]
-        precip_amounts = get_precip_amounts(forecast)
-        # Calculate the widths of the bars, some will be an hour but further along the forecast they will be three hours
-        widths = list(map(lambda dp: (1 if dp.contains_hourly_data else 3) * 3600000, forecast))
-        # Ignore the first and last points to make sure the end widths don't exceed the limits of the plot
-        precip_amount_axis.bar(date_times[1:-1], precip_amounts[1:-1], width=widths[1:-1], bottom=0,
-                               color=config["style"]["precip_amount_color"])
 
     if config["enable_plots"]["wind"]:
         wind_axis = fig.axes[5]
