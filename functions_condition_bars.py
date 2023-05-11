@@ -49,7 +49,7 @@ def count_overlapping_bars(bars, new_bar):
 
 # Given a set of event bars, calculate how many of them are present at the given time
 def count_bars_at_time(bars, time):
-    return sum(1 for b in bars if b["start"] < time < b["end"])
+    return sum(1 for b in bars if b["start"] <= time <= b["end"])
 
 
 # Given a set of event bars, calculate the maximum number of simultaneous ones, i.e. the number of

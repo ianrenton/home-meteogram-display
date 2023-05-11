@@ -8,7 +8,7 @@ from icalevents.icalevents import events
 def generate_event_bars(config, sun, first_time, last_time):
     event_bars = []
     for calendar in config["calendars"]:
-        event_list = events(url=calendar["url"], start=first_time, end=last_time)
+        event_list = events(url=calendar["url"], start=first_time, end=last_time + timedelta(days=1))
         for event in event_list:
             start = event.start
             end = event.end
