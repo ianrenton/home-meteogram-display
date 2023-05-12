@@ -54,19 +54,14 @@ def count_bars_at_time(bars, time):
 
 # Given a set of event bars, calculate the maximum number of simultaneous ones, i.e. the number of
 # lines that would be required to display them all without overlap
-def count_max_bars_at_time(bars):
-    if len(bars) > 0:
-        first_event_start = min(map(lambda b: b["start"], bars))
-        first_event_end = max(map(lambda b: b["end"], bars))
-        duration = first_event_end - first_event_start
-        hour_count = duration.days * 24 + duration.seconds // 3600
-        max_simultaneous_events = 0
-        for test_time in (first_event_start + timedelta(hours=n) for n in range(hour_count)):
-            simultaneous_events = count_bars_at_time(bars, test_time)
-            max_simultaneous_events = max(max_simultaneous_events, simultaneous_events)
-        return max_simultaneous_events
-    else:
-        return 0
+def count_max_simultaneous_bars(bars):
+    max_simultaneous_bars = 0
+    already_checked_bars = []
+    for bar in bars:
+        overlapping = count_overlapping_bars(already_checked_bars, bar)
+        max_simultaneous_bars = max(max_simultaneous_bars, overlapping + 1)
+        already_checked_bars.append(bar)
+    return max_simultaneous_bars
 
 
 # Get a list of datetime blocks that are considered stormy. A list will be returned where each

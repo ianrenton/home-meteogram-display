@@ -11,7 +11,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 from functions_calendar import generate_event_bars
-from functions_condition_bars import count_max_bars_at_time, generate_frost_condition_bars, \
+from functions_condition_bars import count_max_simultaneous_bars, generate_frost_condition_bars, \
     generate_storm_condition_bars, generate_laundry_day_condition_bars
 from functions_config import load_config
 from functions_plotting import add_traces, add_units, add_daytime_regions, add_frost_lines, configure_layout, \
@@ -90,7 +90,7 @@ if show_calendar_events:
     event_bars = generate_event_bars(config, sun, first_time, last_time)
 
 # Find the maximum number of conflicting events
-event_lines_required = min(count_max_bars_at_time(event_bars), max_calendar_event_bar_rows)
+event_lines_required = min(count_max_simultaneous_bars(event_bars), max_calendar_event_bar_rows)
 
 # Disable extra lines if there's nothing to display on them
 if not len(condition_bars):
