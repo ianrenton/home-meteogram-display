@@ -22,6 +22,7 @@ def generate_event_bars(config, sun, first_time, last_time):
             # centrally-positioned text is off-screen.
             start = max(start, first_time)
             end = min(end, last_time)
-            # Build up the list
-            event_bars.append(dict(text=event.summary, start=start, end=end, color=calendar["color"]))
+            # Build up the list. Ignore any events that are currently off the chart.
+            if start < last_time and end > first_time:
+                event_bars.append(dict(text=event.summary, start=start, end=end, color=calendar["color"]))
     return event_bars
