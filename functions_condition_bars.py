@@ -61,9 +61,7 @@ def find_row_for_new_bar(bars, new_bar):
     # Then (if there are any) find the lowest-numbered row we could insert the new bar into without conflict.
     if overlapping_bars:
         for i in range(0, max(map(lambda b: b["row"], overlapping_bars)) + 2):
-            print(i)
             if i not in list(map(lambda b: b["row"], overlapping_bars)):
-                print("hi")
                 return i
     else:
         return 0
