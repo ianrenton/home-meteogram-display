@@ -9,7 +9,7 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from scipy.interpolate import make_interp_spline
 
 from defines import WEATHER_ICON_LOOKUP, DPI
-from functions_condition_bars import count_overlapping_bars
+from functions_condition_bars import find_row_for_new_bar
 from functions_weather import get_date_times, get_feels_likes, get_temperatures, get_precip_probs, get_wind_speeds, \
     get_wind_gust_speeds, get_humidities, get_precip_amounts
 
@@ -251,11 +251,13 @@ def add_condition_bars(fig, config, condition_bars, show_weather_icons):
 
 # Annotate figure with calendar event bars
 def add_calendar_events(fig, config, event_bars, show_weather_icons, show_condition_bars):
+    # Sort events by duration, shortest-first. This allows them to be fitted most efficiently into the available space.
+    event_bars = sorted(event_bars, key=lambda e: e["end"] - e["start"])
     already_added_event_bars = []
     for bar in event_bars:
         # Calculate positions on the bottom subplot. y-axis position depends on whether we have weather icons and/or
         # condition bars above it, and if multiple event rows are being used, which row it is on.
-        add_to_row = count_overlapping_bars(already_added_event_bars, bar)
+        add_to_row = find_row_for_new_bar(already_added_event_bars, bar)
         y_pos = -1 - (1 if show_weather_icons else 0) - (1 if show_condition_bars else 0) - add_to_row
         x_pos = bar["start"].timestamp() * 1000
         y_height = 0.9
@@ -265,4 +267,7 @@ def add_calendar_events(fig, config, event_bars, show_weather_icons, show_condit
         fig.axes[1].add_patch(rect)
         fig.axes[1].text(x_pos + x_width / 2.0, y_pos + y_height / 2.0 - 0.05, bar["text"],
                          color=bar["color"], ha="center", va="center", clip_box=fig.axes[1].clipbox, clip_on=True)
+
+        # Store which row the bar was added to, and add it to the list for checking next time around the loop.
+        bar["row"] = add_to_row
         already_added_event_bars.append(bar)

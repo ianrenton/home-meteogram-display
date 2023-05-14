@@ -47,6 +47,28 @@ def count_overlapping_bars(bars, new_bar):
     return count
 
 
+# Given a set of event bars, and a new bar, find the lowest-number row we can put the new bar in without overlapping an
+# existing one. The existing bars must have a "row" property in addition to start end end time.
+def find_row_for_new_bar(bars, new_bar):
+    # First build up a list of all bars that the new one overlaps
+    overlapping_bars = []
+    for test_bar in bars:
+        latest_start = max(new_bar["start"], test_bar["start"])
+        earliest_end = min(new_bar["end"], test_bar["end"])
+        if earliest_end - latest_start > timedelta(0):
+            overlapping_bars.append(test_bar)
+
+    # Then (if there are any) find the lowest-numbered row we could insert the new bar into without conflict.
+    if overlapping_bars:
+        for i in range(0, max(map(lambda b: b["row"], overlapping_bars)) + 2):
+            print(i)
+            if i not in list(map(lambda b: b["row"], overlapping_bars)):
+                print("hi")
+                return i
+    else:
+        return 0
+
+
 # Given a set of event bars, calculate how many of them are present at the given time
 def count_bars_at_time(bars, time):
     return sum(1 for b in bars if b["start"] <= time <= b["end"])
