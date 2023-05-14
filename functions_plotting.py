@@ -251,8 +251,6 @@ def add_condition_bars(fig, config, condition_bars, show_weather_icons):
 
 # Annotate figure with calendar event bars
 def add_calendar_events(fig, config, event_bars, show_weather_icons, show_condition_bars):
-    # Sort events by duration, shortest-first. This allows them to be fitted most efficiently into the available space.
-    event_bars = sorted(event_bars, key=lambda e: e["end"] - e["start"])
     already_added_event_bars = []
     for bar in event_bars:
         # Calculate positions on the bottom subplot. y-axis position depends on whether we have weather icons and/or
