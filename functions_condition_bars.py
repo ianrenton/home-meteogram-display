@@ -1,6 +1,6 @@
 # Condition bar calculation functions for use with Home Meteogram Display Script
 import statistics
-from datetime import timedelta, datetime
+from datetime import time, timedelta, datetime
 import pytz
 from functions_weather import get_date_times, get_temperatures, get_humidities, get_precip_probs
 
@@ -37,25 +37,21 @@ def cluster_and_get_start_end_times(indices, all_date_times):
 
 
 # Given a set of event bars, and a new bar, count how many of the set are overlapped by the new one
-def count_overlapping_bars(bars, new_bar):
+def count_overlapping_bars(bars, new_bar, config):
     count = 0
     for test_bar in bars:
-        latest_start = max(new_bar["start"], test_bar["start"])
-        earliest_end = min(new_bar["end"], test_bar["end"])
-        if earliest_end - latest_start > timedelta(0):
+        if bars_overlap(new_bar, test_bar, config):
             count += 1
     return count
 
 
 # Given a set of event bars, and a new bar, find the lowest-number row we can put the new bar in without overlapping an
-# existing one. The existing bars must have a "row" property in addition to start end end time.
-def find_row_for_new_bar(bars, new_bar):
+# existing one. The existing bars must have a "row" property in addition to start and end time.
+def find_row_for_new_bar(bars, new_bar, config):
     # First build up a list of all bars that the new one overlaps
     overlapping_bars = []
     for test_bar in bars:
-        latest_start = max(new_bar["start"], test_bar["start"])
-        earliest_end = min(new_bar["end"], test_bar["end"])
-        if earliest_end - latest_start > timedelta(0):
+        if bars_overlap(new_bar, test_bar, config):
             overlapping_bars.append(test_bar)
 
     # Then (if there are any) find the lowest-numbered row we could insert the new bar into without conflict.
@@ -67,6 +63,24 @@ def find_row_for_new_bar(bars, new_bar):
         return 0
 
 
+# Utility method to determine if two bars overlap. Uses the config parameter event_bars_on_same_day_get_new_lines to
+# determine whether overlap is strictly based on start and end times, or just "anything on the same day" is considered
+# an overlap.
+def bars_overlap(one, two, config):
+    start_one = one["start"]
+    start_two = two["start"]
+    end_one = one["end"]
+    end_two = two["end"]
+    if config["style"]["event_bars_on_same_day_get_new_lines"]:
+        start_one = datetime.combine(start_one, time.min)
+        start_two = datetime.combine(start_two, time.min)
+        end_one = datetime.combine(end_one, time.max)
+        end_two = datetime.combine(end_two, time.max)
+    latest_start = max(start_one, start_two)
+    earliest_end = min(end_one, end_two)
+    return earliest_end - latest_start > timedelta(0)
+
+
 # Given a set of event bars, calculate how many of them are present at the given time
 def count_bars_at_time(bars, time):
     return sum(1 for b in bars if b["start"] <= time <= b["end"])
@@ -74,11 +88,11 @@ def count_bars_at_time(bars, time):
 
 # Given a set of event bars, calculate the maximum number of simultaneous ones, i.e. the number of
 # lines that would be required to display them all without overlap
-def count_max_simultaneous_bars(bars):
+def count_max_simultaneous_bars(bars, config):
     max_simultaneous_bars = 0
     already_checked_bars = []
     for bar in bars:
-        overlapping = count_overlapping_bars(already_checked_bars, bar)
+        overlapping = count_overlapping_bars(already_checked_bars, bar, config)
         max_simultaneous_bars = max(max_simultaneous_bars, overlapping + 1)
         already_checked_bars.append(bar)
     return max_simultaneous_bars

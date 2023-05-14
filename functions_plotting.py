@@ -255,7 +255,7 @@ def add_calendar_events(fig, config, event_bars, show_weather_icons, show_condit
     for bar in event_bars:
         # Calculate positions on the bottom subplot. y-axis position depends on whether we have weather icons and/or
         # condition bars above it, and if multiple event rows are being used, which row it is on.
-        add_to_row = find_row_for_new_bar(already_added_event_bars, bar)
+        add_to_row = find_row_for_new_bar(already_added_event_bars, bar, config)
         y_pos = -1 - (1 if show_weather_icons else 0) - (1 if show_condition_bars else 0) - add_to_row
         x_pos = bar["start"].timestamp() * 1000
         y_height = 0.9

@@ -90,7 +90,7 @@ if show_calendar_events:
     event_bars = generate_event_bars(config, sun, first_time, last_time)
 
 # Find the maximum number of conflicting events
-event_lines_required = min(count_max_simultaneous_bars(event_bars), max_calendar_event_bar_rows)
+event_lines_required = min(count_max_simultaneous_bars(event_bars, config), max_calendar_event_bar_rows)
 
 # Disable extra lines if there's nothing to display on them
 if not len(condition_bars):

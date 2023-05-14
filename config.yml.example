@@ -106,7 +106,12 @@ style:
   laundry_day_color: "yellow"
   condition_bars_opacity: 0.2
   calendar_event_bars_opacity: 0.2
+  # Max number of rows to show for events. If you have more than this many simultaneous events, some will drop off the
+  # bottom of the screen - but set this too high and the meteogram could get hard to read
   max_calendar_event_bar_rows: 3
+  # Decluttering parameter. If you have several events with long names on the same day, setting this to True will avoid
+  # text overlap. But if you have lots of such events, you may run out of rows to display them on.
+  event_bars_on_same_day_get_new_lines: True
   frost_line_style: "dotted"
   frost_line_opacity: 1.0
   font_size: 11
