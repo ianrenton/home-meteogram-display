@@ -1,6 +1,6 @@
 # Weather-related functions for use with Home Meteogram Display Script
 
-import json
+import geojson
 import pathlib
 import sys
 from urllib.request import Request, urlopen
@@ -40,13 +40,13 @@ def get_live_or_cached_weather_data(api_url, cache_file_path, client_key, client
         if data_json:
             print("Writing local cache file...")
             cache_file.parent.mkdir(exist_ok=True, parents=True)
-            cache_file.write_text(json.dumps(json.loads(data_json), indent=2))
+            cache_file.write_text(geojson.dumps(geojson.loads(data_json), indent=2))
         else:
             print(
                 "Could not query the Met Office DataHub API. Check your API key is correct and that you have internet"
                 "connectivity.")
             sys.exit(1)
-    weather_data = json.loads(data_json)
+    weather_data = geojson.loads(data_json)
     return weather_data
 
 

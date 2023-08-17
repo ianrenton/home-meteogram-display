@@ -6,3 +6,4 @@ pytz
 PyYAML~=6.0
 scipy
 numpy>=1.19
+geojson
