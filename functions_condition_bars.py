@@ -27,10 +27,10 @@ def cluster_and_get_start_end_times(indices, all_date_times):
     output = []
     clusters = cluster(indices)
     for cl in clusters:
-        start_time_step = all_date_times[cl[0]] - all_date_times[cl[0] - 1] if (cl[0] != 0) else 0
+        start_time_step = all_date_times[cl[0]] - all_date_times[cl[0] - 1] if (cl[0] != 0) else timedelta(hours=0)
         start_time = all_date_times[cl[0]] - (start_time_step / 2.0)
         end_time_step = all_date_times[cl[len(cl) - 1]] - all_date_times[cl[len(cl) - 1] + 1] if (
-                cl[len(cl) - 1] < len(all_date_times) - 1) else 0
+                cl[len(cl) - 1] < len(all_date_times) - 1) else timedelta(hours=0)
         end_time = all_date_times[cl[len(cl) - 1]] + (end_time_step / 2.0)
         output.append({"start": start_time, "end": end_time})
     return output
