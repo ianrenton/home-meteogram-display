@@ -192,17 +192,22 @@ def add_daytime_regions(fig, config, dates, sun, first_time, last_time):
     for day in dates:
         start = sun.get_sunrise_time(day)
         end = sun.get_sunset_time(day)
-        midday_timestamp = (start.timestamp() * 1000 + end.timestamp() * 1000) / 2.0
-        # Ensure the regions don't end up outside the plot area
+        midday = start + (end - start) / 2.0
+        # Coerce the regions, so they don't end up outside the plot area
         start = max(start, first_time)
         end = min(end, last_time)
-        fig.axes[0].axvspan(start.timestamp() * 1000, end.timestamp() * 1000,
-                            color=config["style"]["daytime_color"],
-                            alpha=config["style"]["daytime_opacity"])
-        fig.axes[0].annotate(day.strftime("%A"), (midday_timestamp, 0.97),
-                             xycoords="data",
-                             color=config["style"]["daytime_color"],
-                             ha="center", va="top", clip_box=fig.axes[1].clipbox, clip_on=True)
+        # Only add a daytime block if it would actually be inside the plot area. Due to the coercion above this is now
+        # effectively an "is start still before end" check
+        if start < end:
+            fig.axes[0].axvspan(start.timestamp() * 1000, end.timestamp() * 1000,
+                                color=config["style"]["daytime_color"],
+                                alpha=config["style"]["daytime_opacity"])
+        # Only add a day label if it wouldn't end up outside the plot area
+        if first_time < midday < last_time:
+            fig.axes[0].annotate(day.strftime("%A"), (midday.timestamp() * 1000, 0.97),
+                                 xycoords="data",
+                                 color=config["style"]["daytime_color"],
+                                 ha="center", va="top", clip_box=fig.axes[1].clipbox, clip_on=True)
 
 
 # Annotate figure with frost lines

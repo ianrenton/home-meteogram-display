@@ -1,6 +1,6 @@
 # Home Meteogram Display Script
 # by Ian Renton, April 2023
-# https://github.com/ianrenton/python-metoffice-meteogram
+# https://github.com/ianrenton/home-meteogram-display
 # See README for instructions.
 
 from datetime import datetime, timedelta
@@ -147,6 +147,11 @@ add_units(fig, config, units_y_pos_fraction)
 print("Adding \"now\" line...")
 fig.axes[0].axvline(x=pytz.utc.localize(datetime.utcnow()).timestamp() * 1000, color=config["style"]["now_line_color"],
                     linewidth=2)
+
+# Due to some matplotlib rendering decisions we may have accidentally stretched the plot area beyond the area for which
+# we have weather data, despite our best efforts. Re-set the x-axis min/max to match the data.
+# fig.axes[0].set_xlim(first_time.timestamp() * 1000, last_time.timestamp() * 1000)
+# fig.axes[1].set_xlim(first_time.timestamp() * 1000, last_time.timestamp() * 1000)
 
 # Re-crop the plots to remove extra whitespace
 plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
