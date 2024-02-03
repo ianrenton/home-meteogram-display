@@ -2,10 +2,9 @@
 # Fill in your API key, location etc. and rename this file to ".env".
 # See README for more information.
 
-# Met Office DataHub API client key and secret.
-met_office_datahub_api:
-  client_key: ""
-  client_secret: ""
+# Met Office DataHub API server & key
+met_office_datahub_api_server: "https://data.hub.api.metoffice.gov.uk/sitespecific/v0"
+met_office_datahub_api_key: ""
 
 # Your location, in decimal degrees.
 location:

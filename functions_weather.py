@@ -14,7 +14,7 @@ from defines import MET_OFFICE_DATE_TIME_FORMAT_STRING
 # Fetch weather data as JSON, either from the given URL (in which case also save to the given
 # cache file) or, if the cache file date is within the last 10 minutes, return the contents of
 # the cache file instead.
-def get_live_or_cached_weather_data(api_url, cache_file_path, client_key, client_secret):
+def get_live_or_cached_weather_data(api_url, cache_file_path, api_key):
     read_from_file = False
     data_json = ""
     cache_file = pathlib.Path(cache_file_path)
@@ -32,8 +32,7 @@ def get_live_or_cached_weather_data(api_url, cache_file_path, client_key, client
         # Didn't have recent cached data so query the API for new data
         print("Querying weather API...")
         req = Request(api_url)
-        req.add_header("X-IBM-Client-Id", client_key)
-        req.add_header("X-IBM-Client-Secret", client_secret)
+        req.add_header("apikey", api_key)
         req.add_header("accept", "application/json")
         resp = urlopen(req)
         data_json = resp.read()

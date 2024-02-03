@@ -16,8 +16,8 @@ def load_config():
         sys.exit(1)
     with open('config.yml', 'r') as file:
         config = yaml.safe_load(file)
-    if not config["met_office_datahub_api"]["client_key"] or not config["met_office_datahub_api"]["client_secret"]:
-        print("Your Met Office DataHub API key and/or secret are not set. Copy the 'config.yml.example' file to "
-              "'config.yml' and insert your API keys. Then try running this software again.")
+    if not config["met_office_datahub_api_key"]:
+        print("Your Met Office DataHub API key is not set. Copy the 'config.yml.example' file to 'config.yml' and"
+              " insert your API key. Then try running this software again.")
         sys.exit(1)
     return config

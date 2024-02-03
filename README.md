@@ -33,8 +33,11 @@ If you would like to use this script for yourself, follow these steps:
 
 5. Copy or rename the `config.yml.example` file to `config.yml`
 6. Edit `config.yml` in your preferred editor. You will need:
-    * A Met Office DataHub API client key and secret. To get these, you will need to create an account on the [Met Office DataHub site](https://metoffice.apiconnect.ibmcloud.com/metoffice/production/) and subscribe to the Site Specific forecast service. This is free for 360 API calls per day.
     * Your approximate position, in latitude and longitude. You can look this up using Google Maps or other online services.
+    * A Met Office DataHub API key. To get this, you will need to create an account on the [Met Office DataHub site](https://datahub.metoffice.gov.uk/profile/subscriptions) and subscribe to the Site Specific forecast Global Spot product. This is free for 360 API calls per day. (Your page should look like the image below:)
+
+![Met Office webpage with the correct product selected](docs/metoffice-product.png)
+
 7. Make any other adjustments to parameters in `config.yml` based on the climate of your location and your personal preferences, then save it.
 8. Run `python meteogram.py`
 9. View the meteogram, which will be saved as `output.png`.

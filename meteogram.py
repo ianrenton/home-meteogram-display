@@ -26,10 +26,10 @@ config = load_config()
 
 # Build API URLs. We query twice - once for the hourly data for the next two days, then again
 # for the three-hourly data for the next week.
-hourly_api_url = "https://api-metoffice.apiconnect.ibmcloud.com/v0/forecasts/point/hourly?latitude=" \
+hourly_api_url = config["met_office_datahub_api_server"] + "/point/hourly?latitude=" \
                  + str(config["location"]["lat"]) + "&longitude=" + str(config["location"]["lon"]) \
                  + "&includeLocationName=true"
-three_hourly_api_url = "https://api-metoffice.apiconnect.ibmcloud.com/v0/forecasts/point/three-hourly?latitude=" \
+three_hourly_api_url = config["met_office_datahub_api_server"] + "/point/three-hourly?latitude=" \
                        + str(config["location"]["lat"]) + "&longitude=" + str(config["location"]["lon"]) \
                        + "&includeLocationName=true"
 
@@ -37,11 +37,9 @@ three_hourly_api_url = "https://api-metoffice.apiconnect.ibmcloud.com/v0/forecas
 # See https://metoffice.apiconnect.ibmcloud.com/metoffice/production/site-specific-api-documentation
 # for format data and examples.
 hourly_data = get_live_or_cached_weather_data(hourly_api_url, config["files"]["cache_file_hourly"],
-                                              config["met_office_datahub_api"]["client_key"],
-                                              config["met_office_datahub_api"]["client_secret"])
+                                              config["met_office_datahub_api_key"])
 three_hourly_data = get_live_or_cached_weather_data(three_hourly_api_url, config["files"]["cache_file_three_hourly"],
-                                                    config["met_office_datahub_api"]["client_key"],
-                                                    config["met_office_datahub_api"]["client_secret"])
+                                                    config["met_office_datahub_api_key"])
 
 print("Extracting weather metadata...")
 print_weather_metadata(hourly_data)
