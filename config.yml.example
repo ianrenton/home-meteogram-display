@@ -80,8 +80,13 @@ laundry_day:
 
 # Calendar URLs and colours
 calendars:
+    # iCal URL
   - url: "https://www.gov.uk/bank-holidays/england-and-wales.ics"
+    # Colour (from HTML set, or #hex)
     color: "yellow"
+    # If you are using Nextcloud calendars and get the error "RRULE UNTIL must be in UTC if DTSTART is timezone-aware",
+    # set this to true. For properly compliant calendars, leave it as false or omit it.
+    nextcloud_until_timezone_fix: false
 # Add more calendars by uncommenting and copy-pasting these lines:
 #  - url: ""
 #    color: "dodgerblue"

@@ -1,9 +1,9 @@
-icalevents~=0.1.27
+icalevents~=0.1.29
 matplotlib==3.7.0
 suntime~=1.2.5
 Pillow~=9.5.0
 pytz
 PyYAML~=6.0
 scipy
-numpy>=1.19
+numpy>=1.19,<2
 geojson
