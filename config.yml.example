@@ -36,6 +36,8 @@ enable_features:
   weather_icons: true
   condition_bars: true
   calendar_events: true
+  # Show the day of the month, and the month name on the 1st, as well as just the day of the week.
+  dates_with_days: true
 
 # Use the "feels like" temperature instead of "real" screen temperature?
 use_feels_like_temp: False

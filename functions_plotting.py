@@ -202,9 +202,20 @@ def add_daytime_regions(fig, config, dates, sun, first_time, last_time):
             fig.axes[0].axvspan(start.timestamp() * 1000, end.timestamp() * 1000,
                                 color=config["style"]["daytime_color"],
                                 alpha=config["style"]["daytime_opacity"])
+
         # Only add a day label if it wouldn't end up outside the plot area
         if first_time < midday < last_time:
-            fig.axes[0].annotate(day.strftime("%A"), (midday.timestamp() * 1000, 0.97),
+            day_text = day.strftime("%A")
+
+            # If requested, append e.g. " 1st July", "2nd" etc. to the day text
+            if config["enable_features"]["dates_with_days"]:
+                ordinal = {'1': 'st', '2': 'nd', '3': 'rd'}.get(str(day.day)[-1:], 'th')
+                day_text += " " + str(day.day) + ordinal
+                if day.day == 1:
+                    day_text += " " + day.strftime("%B")
+
+            # Annotate the plot
+            fig.axes[0].annotate(day_text, (midday.timestamp() * 1000, 0.97),
                                  xycoords="data",
                                  color=config["style"]["daytime_color"],
                                  ha="center", va="top", clip_box=fig.axes[1].clipbox, clip_on=True)
