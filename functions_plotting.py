@@ -209,7 +209,7 @@ def add_daytime_regions(fig, config, dates, sun, first_time, last_time):
 
             # If requested, append e.g. " 1st July", "2nd" etc. to the day text
             if config["enable_features"]["dates_with_days"]:
-                ordinal = {'1': 'st', '2': 'nd', '3': 'rd'}.get(str(day.day)[-1:], 'th')
+                ordinal = {'1': 'st', '2': 'nd', '3': 'rd', '21': 'st', '22': 'nd', '23': 'rd', '31': 'st'}.get(str(day.day), 'th')
                 day_text += " " + str(day.day) + ordinal
                 if day.day == 1:
                     day_text += " " + day.strftime("%B")
