@@ -104,7 +104,7 @@ points_space_required_for_lower_subplot = (20 if show_weather_icons else 0) + (2
                                           + (20 * event_lines_required if show_calendar_events else 0)
 lower_subplot_height_fraction_of_total = points_space_required_for_lower_subplot / total_height_points
 main_subplot_height_fraction_of_total = 1 - lower_subplot_height_fraction_of_total
-lines_on_lower_subplot = (1 if show_calendar_events else 0) + (1 if show_condition_bars else 0) \
+lines_on_lower_subplot = (1 if show_weather_icons else 0) + (1 if show_condition_bars else 0) \
                          + (event_lines_required if show_calendar_events else 0)
 
 # Configure layout
